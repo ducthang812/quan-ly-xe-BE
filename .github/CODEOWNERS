@@ -1,0 +1,16 @@
+# Chủ sở hữu code theo phân công (A / B / C). Thay <github-user> bằng tài khoản thật.
+# Thư mục dùng chung đổi qua pull request có chủ duyệt.
+
+# Khung chung (base): cả nhóm cùng duyệt
+/src/main/java/com/example/quan_ly_xe/common/   @teamA @teamB @teamC
+/src/main/java/com/example/quan_ly_xe/shared/   @teamA @teamB @teamC
+/pom.xml                                         @teamA @teamB @teamC
+
+# Module A – Cấu hình, tuyến, tài xế, báo cáo
+/src/main/java/com/example/quan_ly_xe/modules/cauhinh_a/   @teamA
+
+# Module B – Chuyến và vé (kiêm ánh xạ lỗi E01–E32)
+/src/main/java/com/example/quan_ly_xe/modules/vanhanh_b/   @teamB
+
+# Module C – Đội xe và kỹ thuật
+/src/main/java/com/example/quan_ly_xe/modules/doixe_c/     @teamC

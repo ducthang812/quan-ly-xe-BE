@@ -1,3 +1,54 @@
 spring:
   application:
     name: quan-ly-xe
+
+  datasource:
+    # Cụm SQL Server theo chi nhánh sẽ do A cấu hình (lớp định tuyến). Base dùng 1 nút.
+    url: ${DB_URL:jdbc:sqlserver://localhost:1433;databaseName=quan_ly_xe;encrypt=true;trustServerCertificate=true}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      # Schema do mỗi người tự quản bằng migration (db/), KHÔNG để Hibernate tự tạo.
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: Asia/Ho_Chi_Minh
+    show-sql: false
+
+  flyway:
+    # Bật khi CSDL đã sẵn sàng. Mỗi người đặt file V<thời điểm>__<chữ cái>_*.sql của mình.
+    enabled: ${FLYWAY_ENABLED:false}
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+# Cấu hình riêng của ứng dụng.
+app:
+  # Ngày hiện tại. Để trống = ngày hệ thống. Prototype dùng 2025-06-02 (xem profile prototype).
+  current-date: ${APP_CURRENT_DATE:}
+  # Nhân viên demo mặc định khi request không gửi header X-MaNV/X-MaCN/X-VaiTro.
+  # (Bản demo không đăng nhập; client đổi header để demo chi nhánh/vai trò khác.)
+  auth:
+    default-ma-nv: NV001
+    default-ho-ten: Nhân viên demo
+    default-ma-cn: CN01
+    default-vai-tro: QUAN_LY
+
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+
+---
+# Profile prototype: cố định ngày 02/06/2025 để khớp dữ liệu mẫu QLXeKhach.
+spring:
+  config:
+    activate:
+      on-profile: prototype
+app:
+  current-date: 2025-06-02
