@@ -162,7 +162,7 @@ EXEC sp_addlinkedsrvlogin
     @rmtsrvname = N'SERVER_HN', 
     @useself = N'False', 
     @rmtuser = N'sa', 
-    @rmtpassword = N'abc@123';
+    @rmtpassword = N'Abc@123456';
 
 EXEC sp_serveroption @server = N'SERVER_HN', @optname = 'rpc', @optvalue = 'true';
 EXEC sp_serveroption @server = N'SERVER_HN', @optname = 'rpc out', @optvalue = 'true';
@@ -178,7 +178,7 @@ EXEC sp_addlinkedsrvlogin
     @rmtsrvname = N'SERVER_HCM', 
     @useself = N'False', 
     @rmtuser = N'sa', 
-    @rmtpassword = N'abc@123';
+    @rmtpassword = N'Abc@123456';
 
 EXEC sp_serveroption @server = N'SERVER_HCM', @optname = 'rpc', @optvalue = 'true';
 EXEC sp_serveroption @server = N'SERVER_HCM', @optname = 'rpc out', @optvalue = 'true';

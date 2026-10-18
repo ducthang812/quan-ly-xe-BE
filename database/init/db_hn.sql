@@ -276,8 +276,9 @@ EXEC sp_addlinkedsrvlogin
     @rmtsrvname = N'SERVER_DN', 
     @useself = N'False', 
     @rmtuser = N'sa', 
-    @rmtpassword = N'abc@123';
+    @rmtpassword = N'Abc@123456';
 
+EXEC sp_serveroption @server = N'SERVER_DN', @optname = 'rpc', @optvalue = 'true';
 EXEC sp_serveroption @server = N'SERVER_DN', @optname = 'rpc out', @optvalue = 'true';
 
 -- 2. Trỏ sang TP.HCM (Dùng tên container sql_hcm, port gốc 1433)
@@ -291,7 +292,8 @@ EXEC sp_addlinkedsrvlogin
     @rmtsrvname = N'SERVER_HCM', 
     @useself = N'False', 
     @rmtuser = N'sa', 
-    @rmtpassword = N'abc@123';
+    @rmtpassword = N'Abc@123456';
 
+EXEC sp_serveroption @server = N'SERVER_HCM', @optname = 'rpc', @optvalue = 'true';
 EXEC sp_serveroption @server = N'SERVER_HCM', @optname = 'rpc out', @optvalue = 'true';
 GO

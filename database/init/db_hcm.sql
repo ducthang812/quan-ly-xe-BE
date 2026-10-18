@@ -151,18 +151,35 @@ GO
 USE [master];
 GO
 
+-- 1. Trỏ về Trụ sở Hà Nội
 EXEC sp_addlinkedserver 
     @server = N'SERVER_HN', 
     @srvproduct = N'', 
     @provider = N'MSOLEDBSQL', 
-    @datasrc = N'abc@123';
+    @datasrc = N'sql_hn,1433';
 
 EXEC sp_addlinkedsrvlogin 
     @rmtsrvname = N'SERVER_HN', 
     @useself = N'False', 
     @rmtuser = N'sa', 
-    @rmtpassword = N'abc@123';
+    @rmtpassword = N'Abc@123456';
 
 EXEC sp_serveroption @server = N'SERVER_HN', @optname = 'rpc', @optvalue = 'true';
 EXEC sp_serveroption @server = N'SERVER_HN', @optname = 'rpc out', @optvalue = 'true';
+
+-- 2. Trỏ sang Chi nhánh TP.HCM
+EXEC sp_addlinkedserver 
+    @server = N'SERVER_DN', 
+    @srvproduct = N'', 
+    @provider = N'MSOLEDBSQL', 
+    @datasrc = N'sql_dn,1434';
+
+EXEC sp_addlinkedsrvlogin 
+    @rmtsrvname = N'SERVER_DN', 
+    @useself = N'False', 
+    @rmtuser = N'sa', 
+    @rmtpassword = N'Abc@123456';
+
+EXEC sp_serveroption @server = N'SERVER_DN', @optname = 'rpc', @optvalue = 'true';
+EXEC sp_serveroption @server = N'SERVER_DN', @optname = 'rpc out', @optvalue = 'true';
 GO
