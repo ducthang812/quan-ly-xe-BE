@@ -1,0 +1,185 @@
+CREATE DATABASE QLXeKhach_HCM;
+GO
+USE QLXeKhach_HCM;
+GO
+
+-- ==========================================
+-- A. TẠO 12 BẢNG GIAO DỊCH CỤC BỘ TẠI TP.HCM
+-- (Gỡ bỏ các khóa ngoại trỏ về bảng danh mục ở HN)
+-- ==========================================
+
+CREATE TABLE NhanVien (
+    MaNV VARCHAR(15) PRIMARY KEY, 
+    HoDem NVARCHAR(50) NOT NULL, 
+    Ten NVARCHAR(20) NOT NULL, 
+    ChucVu VARCHAR(20) CHECK (ChucVu IN ('BanVe', 'DieuHanh', 'KyThuat', 'QuanLy')), 
+    SoDienThoai VARCHAR(15), 
+    MaCN VARCHAR(10) NOT NULL -- Tham chiếu ngầm về ChiNhanh ở HN (CN03)
+);
+
+CREATE TABLE Xe (
+    MaXe VARCHAR(10) PRIMARY KEY, 
+    BienSo VARCHAR(15) UNIQUE NOT NULL, 
+    MaLoaiXe VARCHAR(10) NOT NULL, -- Tham chiếu ngầm về LoaiXe ở HN
+    MaCN VARCHAR(10) NOT NULL, 
+    NamSanXuat INT NOT NULL CHECK (NamSanXuat >= 2005), 
+    NgayDuaVaoSD DATE NOT NULL, 
+    TrangThai VARCHAR(20) DEFAULT 'HoatDong' CHECK (TrangThai IN ('HoatDong', 'BaoDuong', 'NgungHD'))
+);
+
+CREATE TABLE TaiXe (
+    MaTX VARCHAR(10) PRIMARY KEY, 
+    HoDem NVARCHAR(50) NOT NULL, 
+    Ten NVARCHAR(20) NOT NULL, 
+    NgaySinh DATE NOT NULL CHECK (DATEDIFF(YEAR, NgaySinh, GETDATE()) >= 21), 
+    CCCD VARCHAR(12) UNIQUE NOT NULL, 
+    SoGPLX VARCHAR(20) UNIQUE NOT NULL, 
+    HangGPLX VARCHAR(5) CHECK (HangGPLX IN ('D', 'E', 'FC')), 
+    SoNha NVARCHAR(100), 
+    Phuong NVARCHAR(50), 
+    Tinh NVARCHAR(50), 
+    NgayVaoLam DATE NOT NULL, 
+    TrangThai VARCHAR(20) DEFAULT 'DangLam' CHECK (TrangThai IN ('DangLam', 'NghiViec')), 
+    MaCN VARCHAR(10) NOT NULL
+);
+
+CREATE TABLE TaiXe_SDT (
+    MaTX VARCHAR(10), 
+    SoDienThoai VARCHAR(15), 
+    PRIMARY KEY (MaTX, SoDienThoai),
+    CONSTRAINT FK_TaiXeSDT_TaiXe FOREIGN KEY (MaTX) REFERENCES TaiXe(MaTX) ON DELETE CASCADE
+);
+
+CREATE TABLE ChuyenXe (
+    MaChuyen VARCHAR(15) PRIMARY KEY, 
+    MaTuyen VARCHAR(10) NOT NULL, -- Tham chiếu ngầm về TuyenDuong ở HN
+    MaXe VARCHAR(10) NOT NULL, 
+    GioKhoiHanhDK DATETIME NOT NULL, 
+    GioDenDK DATETIME, 
+    GioKhoiHanhTT DATETIME, 
+    GioDenTT DATETIME, 
+    KmThucTe FLOAT, 
+    ChiPhiVanHanh FLOAT CHECK (ChiPhiVanHanh >= 0), 
+    TrangThai VARCHAR(20) DEFAULT 'KeHoach' CHECK (TrangThai IN ('KeHoach', 'DangChay', 'HoanThanh', 'Huy')),
+    CONSTRAINT FK_Chuyen_Xe FOREIGN KEY (MaXe) REFERENCES Xe(MaXe)
+);
+
+CREATE TABLE PhanCong (
+    MaChuyen VARCHAR(15), 
+    MaTX VARCHAR(10), 
+    VaiTro VARCHAR(10) CHECK (VaiTro IN ('LAI', 'PHU')), 
+    ThuLao FLOAT NOT NULL, 
+    PRIMARY KEY (MaChuyen, MaTX), 
+    CONSTRAINT UQ_PC_VaiTro UNIQUE (MaChuyen, VaiTro),
+    CONSTRAINT FK_PhanCong_Chuyen FOREIGN KEY (MaChuyen) REFERENCES ChuyenXe(MaChuyen),
+    CONSTRAINT FK_PhanCong_TaiXe FOREIGN KEY (MaTX) REFERENCES TaiXe(MaTX)
+);
+
+CREATE TABLE HanhKhach (
+    MaHK VARCHAR(15) PRIMARY KEY, 
+    HoTen NVARCHAR(100) NOT NULL, 
+    SoDienThoai VARCHAR(15) UNIQUE NOT NULL, 
+    CCCD VARCHAR(12), 
+    Email VARCHAR(100)
+);
+
+CREATE TABLE Ve (
+    MaVe VARCHAR(50) PRIMARY KEY, 
+    MaChuyen VARCHAR(15) NOT NULL, 
+    MaHK VARCHAR(15) NOT NULL, 
+    MaNVBan VARCHAR(15) NOT NULL, 
+    SoGhe INT NOT NULL, 
+    LanBan INT NOT NULL, 
+    GiaVe FLOAT NOT NULL CHECK (GiaVe > 0), 
+    NgayBan DATETIME DEFAULT GETDATE(), 
+    TrangThai VARCHAR(20) DEFAULT 'DaBan' CHECK (TrangThai IN ('DaBan', 'DaHuy')),
+    CONSTRAINT FK_Ve_Chuyen FOREIGN KEY (MaChuyen) REFERENCES ChuyenXe(MaChuyen),
+    CONSTRAINT FK_Ve_HanhKhach FOREIGN KEY (MaHK) REFERENCES HanhKhach(MaHK),
+    CONSTRAINT FK_Ve_NVBan FOREIGN KEY (MaNVBan) REFERENCES NhanVien(MaNV)
+);
+
+CREATE UNIQUE INDEX UX_Ve_GheDangBan ON Ve(MaChuyen, SoGhe) WHERE TrangThai = 'DaBan';
+
+CREATE TABLE BaoDuong (
+    MaXe VARCHAR(10), 
+    NgayBaoDuong DATE, 
+    NoiDung NVARCHAR(255), 
+    ChiPhi FLOAT CHECK (ChiPhi >= 0), 
+    PRIMARY KEY (MaXe, NgayBaoDuong),
+    CONSTRAINT FK_BaoDuong_Xe FOREIGN KEY (MaXe) REFERENCES Xe(MaXe)
+);
+
+CREATE TABLE DangKiem (
+    MaXe VARCHAR(10), 
+    NgayDangKiem DATE, 
+    NgayHetHan DATE, 
+    KetQua VARCHAR(20) CHECK (KetQua IN ('Dat', 'KhongDat')), 
+    ChiPhi FLOAT CHECK (ChiPhi >= 0), 
+    PRIMARY KEY (MaXe, NgayDangKiem),
+    CONSTRAINT FK_DangKiem_Xe FOREIGN KEY (MaXe) REFERENCES Xe(MaXe)
+);
+
+CREATE TABLE BangLuong (
+    MaTX VARCHAR(10), 
+    Thang VARCHAR(7), 
+    SoChuyenLai INT DEFAULT 0, 
+    SoChuyenPhu INT DEFAULT 0, 
+    TongLuong FLOAT DEFAULT 0, 
+    NgayChot DATETIME DEFAULT GETDATE(), 
+    PRIMARY KEY (MaTX, Thang),
+    CONSTRAINT FK_BangLuong_TaiXe FOREIGN KEY (MaTX) REFERENCES TaiXe(MaTX)
+);
+GO
+
+-- ==========================================
+-- B. INSERT DỮ LIỆU CỤC BỘ TP.HCM (CN03)
+-- ==========================================
+INSERT INTO NhanVien VALUES 
+('NV_HCM01', N'Võ', N'Điều Hành HCM', 'DieuHanh', '0904444444', 'CN03');
+
+INSERT INTO Xe VALUES 
+('XE_HCM01', '51B-333.33', 'LX45', 'CN03', 2021, '2025-01-01', 'HoatDong');
+
+INSERT INTO TaiXe VALUES 
+('TX_HCM01', N'Đinh', N'Lái HCM', '1982-10-10', '079082555555', 'GP555', 'E', N'Số 10', N'Bình Thạnh', N'TP.HCM', '2025-01-01', 'DangLam', 'CN03'),
+('TX_HCM02', N'Ngô', N'Phụ HCM', '1995-12-12', '079095666666', 'GP666', 'D', N'Số 25', N'Thủ Đức', N'TP.HCM', '2025-01-01', 'DangLam', 'CN03');
+GO
+
+-- ==========================================
+-- C. CẤU HÌNH LINKED SERVER TRỎ VỀ HÀ NỘI
+-- ==========================================
+USE [master];
+GO
+
+-- 1. Trỏ về Trụ sở Hà Nội
+EXEC sp_addlinkedserver 
+    @server = N'SERVER_HN', 
+    @srvproduct = N'', 
+    @provider = N'MSOLEDBSQL', 
+    @datasrc = N'sql_hn,1433';
+
+EXEC sp_addlinkedsrvlogin 
+    @rmtsrvname = N'SERVER_HN', 
+    @useself = N'False', 
+    @rmtuser = N'sa', 
+    @rmtpassword = N'Abc@123456';
+
+EXEC sp_serveroption @server = N'SERVER_HN', @optname = 'rpc', @optvalue = 'true';
+EXEC sp_serveroption @server = N'SERVER_HN', @optname = 'rpc out', @optvalue = 'true';
+
+-- 2. Trỏ sang Chi nhánh TP.HCM
+EXEC sp_addlinkedserver 
+    @server = N'SERVER_DN', 
+    @srvproduct = N'', 
+    @provider = N'MSOLEDBSQL', 
+    @datasrc = N'sql_dn,1434';
+
+EXEC sp_addlinkedsrvlogin 
+    @rmtsrvname = N'SERVER_DN', 
+    @useself = N'False', 
+    @rmtuser = N'sa', 
+    @rmtpassword = N'Abc@123456';
+
+EXEC sp_serveroption @server = N'SERVER_DN', @optname = 'rpc', @optvalue = 'true';
+EXEC sp_serveroption @server = N'SERVER_DN', @optname = 'rpc out', @optvalue = 'true';
+GO

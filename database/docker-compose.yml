@@ -1,0 +1,44 @@
+services:
+  sql_hn:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sql_hn
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=Abc@123456
+    ports:
+      - "1433:1433"
+    volumes:
+      # Map thư mục data bên trong Linux ra thư mục ./data_hn trên máy Windows
+      - ./data_hn:/var/opt/mssql/data
+    networks:
+      - xe_khach_network
+
+  sql_dn:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sql_dn
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=Abc@123456
+    ports:
+      - "1434:1433"
+    volumes:
+      - ./data_dn:/var/opt/mssql/data
+    networks:
+      - xe_khach_network
+
+  sql_hcm:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sql_hcm
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=Abc@123456
+    ports:
+      - "1435:1433"
+    volumes:
+      - ./data_hcm:/var/opt/mssql/data
+    networks:
+      - xe_khach_network
+
+networks:
+  xe_khach_network:
+    driver: bridge
