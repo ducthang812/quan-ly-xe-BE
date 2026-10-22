@@ -3,10 +3,10 @@ spring:
     name: quan-ly-xe
 
   datasource:
-    # Cụm SQL Server theo chi nhánh sẽ do A cấu hình (lớp định tuyến). Base dùng 1 nút.
-    url: ${DB_URL:jdbc:sqlserver://localhost:1433;databaseName=quan_ly_xe;encrypt=true;trustServerCertificate=true}
+    # Cụm SQL Server theo chi nhánh do A cấu hình (lớp định tuyến). Mặc định Trụ sở HN (CN01).
+    url: ${DB_URL:jdbc:sqlserver://localhost:1433;databaseName=QLXeKhach_HN;encrypt=true;trustServerCertificate=true}
     username: ${DB_USERNAME:sa}
-    password: ${DB_PASSWORD:}
+    password: ${DB_PASSWORD:Abc@123456}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
   jpa:
@@ -29,6 +29,22 @@ spring:
 
 # Cấu hình riêng của ứng dụng.
 app:
+  # Cấu hình đa chi nhánh cho cụm SQL Server phân tán (Người A)
+  datasource:
+    branches:
+      CN01:
+        url: ${DB_HN_URL:jdbc:sqlserver://localhost:1433;databaseName=QLXeKhach_HN;encrypt=true;trustServerCertificate=true}
+        username: ${DB_HN_USERNAME:sa}
+        password: ${DB_HN_PASSWORD:Abc@123456}
+      CN02:
+        url: ${DB_DN_URL:jdbc:sqlserver://localhost:1434;databaseName=QLXeKhach_DN;encrypt=true;trustServerCertificate=true}
+        username: ${DB_DN_USERNAME:sa}
+        password: ${DB_DN_PASSWORD:Abc@123456}
+      CN03:
+        url: ${DB_HCM_URL:jdbc:sqlserver://localhost:1435;databaseName=QLXeKhach_HCM;encrypt=true;trustServerCertificate=true}
+        username: ${DB_HCM_USERNAME:sa}
+        password: ${DB_HCM_PASSWORD:Abc@123456}
+
   # Ngày hiện tại. Để trống = ngày hệ thống. Prototype dùng 2025-06-02 (xem profile prototype).
   current-date: ${APP_CURRENT_DATE:}
   # Nhân viên demo mặc định khi request không gửi header X-MaNV/X-MaCN/X-VaiTro.
