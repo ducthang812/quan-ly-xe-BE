@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "a98c5df1-c852-4a0b-9df0-7d6f51f49618",
-    "name": "Quản Lý Xe Khách - Module A (Người A) - Sprint 0 & 1",
-    "description": "Bộ Postman Collection kiểm thử toàn bộ API Backend của Người A (Cấu hình, Tuyến đường, Giá vé, Tài xế, Danh mục).\n- 100% sử dụng Stored Procedures T-SQL trong SQL Server.\n- Định tuyến phân tán theo định dạng URL Dạng A: /{site}/api/v1/... (site = hn, dn, hcm).\n- Quyền ghi/cập nhật chỉ dành cho /hn. Các chi nhánh khác (/dn, /hcm) chỉ đọc dữ liệu qua Linked Server.",
+    "name": "Quản Lý Xe Khách - Module A (Người A) - Sprint 0, 1 & 2",
+    "description": "Bộ Postman Collection kiểm thử toàn bộ API Backend của Người A (Cấu hình, Tuyến đường, Giá vé, Tài xế, Báo cáo thống kê, Chốt lương).\n- 100% sử dụng Stored Procedures T-SQL trong SQL Server.\n- Định tuyến phân tán theo định dạng URL Dạng A: /{site}/api/v1/... (site = hn, dn, hcm).\n- Quyền ghi/cập nhật chỉ dành cho /hn. Các chi nhánh khác (/dn, /hcm) chỉ đọc dữ liệu qua Linked Server.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -28,8 +28,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/cauhinh/tham-so",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "cauhinh", "tham-so"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cauhinh",
+                "tham-so"
+              ]
             },
             "description": "Gọi không có prefix /hn, /dn hoặc /hcm sẽ bị chặn ngay lập tức."
           }
@@ -41,8 +48,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/hn/cauhinh/tham-so",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "hn", "cauhinh", "tham-so"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "hn",
+                "cauhinh",
+                "tham-so"
+              ]
             },
             "description": "Chỉ chấp nhận Dạng A /{site}/api/v1/..."
           }
@@ -63,8 +78,17 @@
             },
             "url": {
               "raw": "{{baseUrl}}/dn/api/v1/cauhinh/tham-so/thu-lao",
-              "host": ["{{baseUrl}}"],
-              "path": ["dn", "api", "v1", "cauhinh", "tham-so", "thu-lao"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dn",
+                "api",
+                "v1",
+                "cauhinh",
+                "tham-so",
+                "thu-lao"
+              ]
             },
             "description": "Chi nhánh DN không có quyền cập nhật dữ liệu cấu hình dùng chung."
           }
@@ -76,8 +100,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/dn/api/v1/cauhinh/tham-so",
-              "host": ["{{baseUrl}}"],
-              "path": ["dn", "api", "v1", "cauhinh", "tham-so"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dn",
+                "api",
+                "v1",
+                "cauhinh",
+                "tham-so"
+              ]
             },
             "description": "Site DN đọc dữ liệu dùng chung thông qua Stored Procedure trên DB DN gọi Linked Server SERVER_HN."
           }
@@ -94,8 +126,17 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/{{site}}/api/v1/cauhinh/danh-muc/chi-nhanh",
-              "host": ["{{baseUrl}}"],
-              "path": ["{{site}}", "api", "v1", "cauhinh", "danh-muc", "chi-nhanh"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "{{site}}",
+                "api",
+                "v1",
+                "cauhinh",
+                "danh-muc",
+                "chi-nhanh"
+              ]
             }
           }
         },
@@ -106,8 +147,17 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/{{site}}/api/v1/cauhinh/danh-muc/lich-ngay?nam=2025",
-              "host": ["{{baseUrl}}"],
-              "path": ["{{site}}", "api", "v1", "cauhinh", "danh-muc", "lich-ngay"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "{{site}}",
+                "api",
+                "v1",
+                "cauhinh",
+                "danh-muc",
+                "lich-ngay"
+              ],
               "query": [
                 {
                   "key": "nam",
@@ -124,8 +174,17 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/{{site}}/api/v1/cauhinh/danh-muc/muc-do-san-sang",
-              "host": ["{{baseUrl}}"],
-              "path": ["{{site}}", "api", "v1", "cauhinh", "danh-muc", "muc-do-san-sang"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "{{site}}",
+                "api",
+                "v1",
+                "cauhinh",
+                "danh-muc",
+                "muc-do-san-sang"
+              ]
             }
           }
         }
@@ -141,8 +200,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/{{site}}/api/v1/cauhinh/tham-so",
-              "host": ["{{baseUrl}}"],
-              "path": ["{{site}}", "api", "v1", "cauhinh", "tham-so"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "{{site}}",
+                "api",
+                "v1",
+                "cauhinh",
+                "tham-so"
+              ]
             }
           }
         },
@@ -162,8 +229,17 @@
             },
             "url": {
               "raw": "{{baseUrl}}/hn/api/v1/cauhinh/tham-so/thu-lao",
-              "host": ["{{baseUrl}}"],
-              "path": ["hn", "api", "v1", "cauhinh", "tham-so", "thu-lao"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hn",
+                "api",
+                "v1",
+                "cauhinh",
+                "tham-so",
+                "thu-lao"
+              ]
             }
           }
         },
@@ -183,8 +259,17 @@
             },
             "url": {
               "raw": "{{baseUrl}}/hn/api/v1/cauhinh/tham-so/bao-duong-dang-kiem",
-              "host": ["{{baseUrl}}"],
-              "path": ["hn", "api", "v1", "cauhinh", "tham-so", "bao-duong-dang-kiem"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hn",
+                "api",
+                "v1",
+                "cauhinh",
+                "tham-so",
+                "bao-duong-dang-kiem"
+              ]
             }
           }
         }
@@ -200,8 +285,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/{{site}}/api/v1/cauhinh/tuyen-duong",
-              "host": ["{{baseUrl}}"],
-              "path": ["{{site}}", "api", "v1", "cauhinh", "tuyen-duong"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "{{site}}",
+                "api",
+                "v1",
+                "cauhinh",
+                "tuyen-duong"
+              ]
             }
           }
         },
@@ -212,8 +305,17 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/{{site}}/api/v1/cauhinh/tuyen-duong/T01",
-              "host": ["{{baseUrl}}"],
-              "path": ["{{site}}", "api", "v1", "cauhinh", "tuyen-duong", "T01"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "{{site}}",
+                "api",
+                "v1",
+                "cauhinh",
+                "tuyen-duong",
+                "T01"
+              ]
             }
           }
         },
@@ -233,8 +335,16 @@
             },
             "url": {
               "raw": "{{baseUrl}}/hn/api/v1/cauhinh/tuyen-duong",
-              "host": ["{{baseUrl}}"],
-              "path": ["hn", "api", "v1", "cauhinh", "tuyen-duong"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hn",
+                "api",
+                "v1",
+                "cauhinh",
+                "tuyen-duong"
+              ]
             },
             "description": "Tự sinh mã tuyến tăng dần (T03, T04...) và lưu tuyến + 4 giá vé trong 1 transaction SQL Server."
           }
@@ -255,8 +365,18 @@
             },
             "url": {
               "raw": "{{baseUrl}}/hn/api/v1/cauhinh/tuyen-duong/T01/gia-ve",
-              "host": ["{{baseUrl}}"],
-              "path": ["hn", "api", "v1", "cauhinh", "tuyen-duong", "T01", "gia-ve"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hn",
+                "api",
+                "v1",
+                "cauhinh",
+                "tuyen-duong",
+                "T01",
+                "gia-ve"
+              ]
             }
           }
         },
@@ -276,8 +396,18 @@
             },
             "url": {
               "raw": "{{baseUrl}}/hn/api/v1/cauhinh/tuyen-duong/gia-ve/hang-loat",
-              "host": ["{{baseUrl}}"],
-              "path": ["hn", "api", "v1", "cauhinh", "tuyen-duong", "gia-ve", "hang-loat"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hn",
+                "api",
+                "v1",
+                "cauhinh",
+                "tuyen-duong",
+                "gia-ve",
+                "hang-loat"
+              ]
             }
           }
         },
@@ -297,8 +427,17 @@
             },
             "url": {
               "raw": "{{baseUrl}}/hn/api/v1/cauhinh/tuyen-duong/T01",
-              "host": ["{{baseUrl}}"],
-              "path": ["hn", "api", "v1", "cauhinh", "tuyen-duong", "T01"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hn",
+                "api",
+                "v1",
+                "cauhinh",
+                "tuyen-duong",
+                "T01"
+              ]
             }
           }
         }
@@ -314,8 +453,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/hn/api/v1/cauhinh/tai-xe",
-              "host": ["{{baseUrl}}"],
-              "path": ["hn", "api", "v1", "cauhinh", "tai-xe"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hn",
+                "api",
+                "v1",
+                "cauhinh",
+                "tai-xe"
+              ]
             }
           }
         },
@@ -326,8 +473,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/dn/api/v1/cauhinh/tai-xe",
-              "host": ["{{baseUrl}}"],
-              "path": ["dn", "api", "v1", "cauhinh", "tai-xe"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dn",
+                "api",
+                "v1",
+                "cauhinh",
+                "tai-xe"
+              ]
             }
           }
         },
@@ -338,8 +493,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/hcm/api/v1/cauhinh/tai-xe",
-              "host": ["{{baseUrl}}"],
-              "path": ["hcm", "api", "v1", "cauhinh", "tai-xe"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hcm",
+                "api",
+                "v1",
+                "cauhinh",
+                "tai-xe"
+              ]
             }
           }
         },
@@ -359,8 +522,16 @@
             },
             "url": {
               "raw": "{{baseUrl}}/hn/api/v1/cauhinh/tai-xe",
-              "host": ["{{baseUrl}}"],
-              "path": ["hn", "api", "v1", "cauhinh", "tai-xe"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hn",
+                "api",
+                "v1",
+                "cauhinh",
+                "tai-xe"
+              ]
             },
             "description": "Tự sinh mã tài xế TX0003..., kiểm tra tuổi ≥ 21, CCCD 12 số, thêm số điện thoại vào TaiXe_SDT."
           }
@@ -381,8 +552,17 @@
             },
             "url": {
               "raw": "{{baseUrl}}/hn/api/v1/cauhinh/tai-xe/TX0001",
-              "host": ["{{baseUrl}}"],
-              "path": ["hn", "api", "v1", "cauhinh", "tai-xe", "TX0001"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hn",
+                "api",
+                "v1",
+                "cauhinh",
+                "tai-xe",
+                "TX0001"
+              ]
             }
           }
         },
@@ -402,8 +582,18 @@
             },
             "url": {
               "raw": "{{baseUrl}}/hn/api/v1/cauhinh/tai-xe/TX0001/trang-thai",
-              "host": ["{{baseUrl}}"],
-              "path": ["hn", "api", "v1", "cauhinh", "tai-xe", "TX0001", "trang-thai"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hn",
+                "api",
+                "v1",
+                "cauhinh",
+                "tai-xe",
+                "TX0001",
+                "trang-thai"
+              ]
             }
           }
         }
@@ -419,8 +609,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/dn/api/v1/cauhinh/tuyen-duong",
-              "host": ["{{baseUrl}}"],
-              "path": ["dn", "api", "v1", "cauhinh", "tuyen-duong"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dn",
+                "api",
+                "v1",
+                "cauhinh",
+                "tuyen-duong"
+              ]
             }
           }
         },
@@ -431,8 +629,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/hcm/api/v1/cauhinh/tham-so",
-              "host": ["{{baseUrl}}"],
-              "path": ["hcm", "api", "v1", "cauhinh", "tham-so"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hcm",
+                "api",
+                "v1",
+                "cauhinh",
+                "tham-so"
+              ]
             }
           }
         },
@@ -443,13 +649,378 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/hcm/api/v1/cauhinh/danh-muc/chi-nhanh",
-              "host": ["{{baseUrl}}"],
-              "path": ["hcm", "api", "v1", "cauhinh", "danh-muc", "chi-nhanh"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hcm",
+                "api",
+                "v1",
+                "cauhinh",
+                "danh-muc",
+                "chi-nhanh"
+              ]
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06. Sprint 2 - UC-016 Xem báo cáo (MH05 - 3 ô tổng & 5 Tab)",
+      "item": [
+        {
+          "name": "1. Danh sách các tháng có chuyến (Combobox Tháng)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/{{site}}/api/v1/cauhinh/bao-cao/thang-co-chuyen",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "{{site}}",
+                "api",
+                "v1",
+                "cauhinh",
+                "bao-cao",
+                "thang-co-chuyen"
+              ]
+            },
+            "description": "Lấy danh sách các tháng yyyy-MM phân biệt có chuyến xe để hiển thị combobox."
+          }
+        },
+        {
+          "name": "2. 3 Ô số tổng đầu màn hình MH05 (Doanh thu F15, Số vé, Lương F02)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/{{site}}/api/v1/cauhinh/bao-cao/tong-hop?thang=2025-05",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "{{site}}",
+                "api",
+                "v1",
+                "cauhinh",
+                "bao-cao",
+                "tong-hop"
+              ],
+              "query": [
+                {
+                  "key": "thang",
+                  "value": "2025-05"
+                },
+                {
+                  "key": "maCN",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "3 ô số tổng: Doanh thu tháng (chuyến hoàn thành), Số vé tính doanh thu, Tổng lương tài xế."
+          }
+        },
+        {
+          "name": "3. Tab 1 - Báo cáo Lương tài xế (sp_R01)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/{{site}}/api/v1/cauhinh/bao-cao/luong-tai-xe?thang=2025-05",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "{{site}}",
+                "api",
+                "v1",
+                "cauhinh",
+                "bao-cao",
+                "luong-tai-xe"
+              ],
+              "query": [
+                {
+                  "key": "thang",
+                  "value": "2025-05"
+                },
+                {
+                  "key": "maCN",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Tab 1: Bảng Lương tài xế sắp xếp lương giảm dần (F02)."
+          }
+        },
+        {
+          "name": "4. Tab 2 - Doanh thu theo xe (sp_R02)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/{{site}}/api/v1/cauhinh/bao-cao/doanh-thu-theo-xe?thang=2025-05",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "{{site}}",
+                "api",
+                "v1",
+                "cauhinh",
+                "bao-cao",
+                "doanh-thu-theo-xe"
+              ],
+              "query": [
+                {
+                  "key": "thang",
+                  "value": "2025-05"
+                },
+                {
+                  "key": "maCN",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Tab 2: Doanh thu theo xe (chỉ xe đang Hoạt động), sắp xếp doanh thu giảm dần kèm tỷ lệ %."
+          }
+        },
+        {
+          "name": "5. Tab 3 - Doanh thu theo tuyến (sp_R03)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/{{site}}/api/v1/cauhinh/bao-cao/doanh-thu-theo-tuyen?thang=2025-05",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "{{site}}",
+                "api",
+                "v1",
+                "cauhinh",
+                "bao-cao",
+                "doanh-thu-theo-tuyen"
+              ],
+              "query": [
+                {
+                  "key": "thang",
+                  "value": "2025-05"
+                },
+                {
+                  "key": "maCN",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Tab 3: Doanh thu theo tuyến (Điểm đầu - Điểm cuối)."
+          }
+        },
+        {
+          "name": "6. Tab 4 - Doanh thu theo loại xe (sp_R04)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/{{site}}/api/v1/cauhinh/bao-cao/doanh-thu-theo-loai-xe?thang=2025-05",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "{{site}}",
+                "api",
+                "v1",
+                "cauhinh",
+                "bao-cao",
+                "doanh-thu-theo-loai-xe"
+              ],
+              "query": [
+                {
+                  "key": "thang",
+                  "value": "2025-05"
+                },
+                {
+                  "key": "maCN",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Tab 4: Doanh thu gom theo loại xe (Limousine 9 chỗ, 16 chỗ, 29 chỗ, 45 chỗ)."
+          }
+        },
+        {
+          "name": "7. Tab 5 - Xe quá hạn bảo dưỡng (sp_R06 - F10, F11)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/{{site}}/api/v1/cauhinh/bao-cao/xe-qua-han-bao-duong?ngayXet=2025-05-31",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "{{site}}",
+                "api",
+                "v1",
+                "cauhinh",
+                "bao-cao",
+                "xe-qua-han-bao-duong"
+              ],
+              "query": [
+                {
+                  "key": "ngayXet",
+                  "value": "2025-05-31"
+                },
+                {
+                  "key": "maCN",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Tab 5: Xe có ngày bảo dưỡng tiếp theo (F11) < ngày xét, sắp xếp số ngày quá hạn giảm dần."
+          }
+        }
+      ]
+    },
+    {
+      "name": "07. Sprint 2 - UC-017 Chốt lương tháng & Tra cứu bảng lương",
+      "item": [
+        {
+          "name": "1. Kiểm tra dòng trạng thái chốt lương của tháng (MH05)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/{{site}}/api/v1/cauhinh/bang-luong/trang-thai?thang=2025-05",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "{{site}}",
+                "api",
+                "v1",
+                "cauhinh",
+                "bang-luong",
+                "trang-thai"
+              ],
+              "query": [
+                {
+                  "key": "thang",
+                  "value": "2025-05"
+                },
+                {
+                  "key": "maCN",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Kiểm tra xem tháng đã chốt lương chưa để hiển thị text label trên MH05."
+          }
+        },
+        {
+          "name": "2. Chốt lương tháng (sp_ChotLuongThang - Chỉ site HN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"thang\": \"2025-05\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/hn/api/v1/cauhinh/bang-luong/chot-luong",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hn",
+                "api",
+                "v1",
+                "cauhinh",
+                "bang-luong",
+                "chot-luong"
+              ]
+            },
+            "description": "Thực thi giao dịch xóa lương cũ và ghi nhận số liệu chốt lương mới cho mọi tài xế vào bảng BangLuong."
+          }
+        },
+        {
+          "name": "3. Tra cứu danh sách bảng lương đã chốt",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/{{site}}/api/v1/cauhinh/bang-luong?thang=2025-05",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "{{site}}",
+                "api",
+                "v1",
+                "cauhinh",
+                "bang-luong"
+              ],
+              "query": [
+                {
+                  "key": "thang",
+                  "value": "2025-05"
+                },
+                {
+                  "key": "maCN",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Lấy danh sách các dòng từ bảng BangLuong theo tháng."
+          }
+        },
+        {
+          "name": "4. Chặn thao tác chốt lương từ site Đà Nẵng (Mong đợi 403 Forbidden)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"thang\": \"2025-05\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/dn/api/v1/cauhinh/bang-luong/chot-luong",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dn",
+                "api",
+                "v1",
+                "cauhinh",
+                "bang-luong",
+                "chot-luong"
+              ]
+            },
+            "description": "Mọi thao tác ghi (POST/PUT/DELETE) gửi tới /dn hoặc /hcm đều bị chặn 403 Forbidden."
           }
         }
       ]
     }
   ]
 }
-
