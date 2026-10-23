@@ -270,8 +270,7 @@ EXEC sp_addlinkedserver
     @server = N'SERVER_DN', 
     @srvproduct = N'', 
     @provider = N'MSOLEDBSQL', 
-    @datasrc = N'sql_dn,1433';
-
+    @datasrc = N'sql_dn,1433'; -- Trong docker dùng ten container sql_dn, port gốc 1433
 EXEC sp_addlinkedsrvlogin 
     @rmtsrvname = N'SERVER_DN', 
     @useself = N'False', 
