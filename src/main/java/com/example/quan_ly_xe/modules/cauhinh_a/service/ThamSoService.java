@@ -10,6 +10,7 @@ import com.example.quan_ly_xe.modules.cauhinh_a.dto.response.LichNgayResponse;
 import com.example.quan_ly_xe.modules.cauhinh_a.dto.response.ThamSoResponse;
 import com.example.quan_ly_xe.modules.cauhinh_a.repository.DanhMucSpRepository;
 import com.example.quan_ly_xe.modules.cauhinh_a.repository.ThamSoSpRepository;
+import com.example.quan_ly_xe.shared.routing.BranchContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,8 @@ import java.util.Map;
  * Service xử lý UC-002: Thiết lập tham số hệ thống.
  * Kết nối duy nhất vào database của site tương ứng. Việc đọc dữ liệu dùng chung
  * tại DN/HCM do Stored Procedure gọi Linked Server sang HN.
+ * <p>
+ * Quyền ghi: Chỉ site Hà Nội (/hn - CN01) mới có quyền cập nhật tham số cấu hình chung.
  */
 @Service
 public class ThamSoService {
@@ -31,6 +34,14 @@ public class ThamSoService {
     public ThamSoService(ThamSoSpRepository thamSoRepository, DanhMucSpRepository danhMucRepository) {
         this.thamSoRepository = thamSoRepository;
         this.danhMucRepository = danhMucRepository;
+    }
+
+    private void checkBranchWritePermission() {
+        String branch = BranchContextHolder.getBranch();
+        if (branch != null && !"CN01".equalsIgnoreCase(branch)) {
+            throw new AppException(ErrorCode.FORBIDDEN,
+                    "Chỉ chi nhánh Hà Nội (/hn) mới có quyền cập nhật tham số hệ thống. Chi nhánh " + branch + " chỉ có quyền xem.");
+        }
     }
 
     public List<ThamSoResponse> layDanhSachThamSo() {
@@ -62,10 +73,12 @@ public class ThamSoService {
     }
 
     /**
-     * UC-002: Lưu tham số thù lao (chỉ site /hn mới được gọi qua filter).
+     * UC-002: Lưu tham số thù lao (chỉ site /hn mới được phép ghi).
      */
     @Transactional
     public void capNhatThamSoThuLao(ThamSoThuLaoRequest req) {
+        checkBranchWritePermission();
+
         if (req.getDonGiaKm() <= 0 || req.getHsLai() <= 0 || req.getHsPhu() <= 0
                 || req.getHsLuongCap1() <= 0 || req.getHsLuongCap2() <= 0 || req.getHsLuongCap3() <= 0) {
             throw new AppException(ErrorCode.E02);
@@ -82,10 +95,12 @@ public class ThamSoService {
     }
 
     /**
-     * UC-002: Lưu tham số bảo dưỡng và đăng kiểm (chỉ site /hn mới được gọi qua filter).
+     * UC-002: Lưu tham số bảo dưỡng và đăng kiểm (chỉ site /hn mới được phép ghi).
      */
     @Transactional
     public void capNhatThamSoBaoDuong(ThamSoBaoDuongRequest req) {
+        checkBranchWritePermission();
+
         if (req.getChuKyBd() <= 0 || req.getKmMoiNgayBd() <= 0 || req.getCanhBaoNgay() <= 0
                 || req.getChuKyDkCu() <= 0 || req.getChuKyDkMoi() <= 0 || req.getTuoiXeCu() <= 0) {
             throw new AppException(ErrorCode.E02);

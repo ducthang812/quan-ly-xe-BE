@@ -12,7 +12,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Repository danh mục dùng chung (Chi nhánh, Lịch ngày, Sẵn sàng hệ thống) thuần túy bằng Stored Procedures.
+ * Repository danh mục dùng chung (Chi nhánh, Lịch loại ngày, Mức độ sẵn sàng).
  */
 @Repository
 public class DanhMucSpRepository {
@@ -33,13 +33,19 @@ public class DanhMucSpRepository {
             .build();
 
     private static final RowMapper<LichNgayResponse> LICH_NGAY_MAPPER = (rs, rowNum) -> {
-        Date ngaySql = rs.getDate("Ngay");
-        LocalDate ngay = ngaySql != null ? ngaySql.toLocalDate() : null;
+        Date tuNgaySql = rs.getDate("TuNgay");
+        LocalDate tuNgay = tuNgaySql != null ? tuNgaySql.toLocalDate() : null;
+
+        Date denNgaySql = rs.getDate("DenNgay");
+        LocalDate denNgay = denNgaySql != null ? denNgaySql.toLocalDate() : null;
 
         return LichNgayResponse.builder()
-                .ngay(ngay)
+                .id(rs.getInt("Id"))
                 .maLoaiNgay(rs.getString("MaLoaiNgay"))
                 .tenLoaiNgay(rs.getString("TenLoaiNgay"))
+                .tuNgay(tuNgay)
+                .denNgay(denNgay)
+                .moTa(rs.getString("MoTa"))
                 .build();
     };
 
@@ -51,7 +57,7 @@ public class DanhMucSpRepository {
     }
 
     /**
-     * Gọi SP: sp_LayDanhSachLichNgay
+     * Gọi SP: sp_LayDanhSachLichNgay (Lấy dữ liệu từ bảng LichLoaiNgay)
      */
     public List<LichNgayResponse> layDanhSachLichNgay(Integer nam, Integer thang) {
         return jdbcTemplate.query("{call sp_LayDanhSachLichNgay(?, ?)}", LICH_NGAY_MAPPER, nam, thang);
@@ -94,4 +100,3 @@ public class DanhMucSpRepository {
         });
     }
 }
-

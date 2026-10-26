@@ -70,6 +70,8 @@ public enum ErrorCode {
 
     // Tài nguyên không tồn tại (không nằm trong bảng SRS nhưng BE cần cho REST).
     NOT_FOUND(HttpStatus.NOT_FOUND, ErrorMessage.NOT_FOUND_VI, ErrorMessage.NOT_FOUND_EN),
+    // Không có quyền thao tác (phân mảnh chi nhánh, bảo mật...).
+    FORBIDDEN(HttpStatus.FORBIDDEN, ErrorMessage.FORBIDDEN_VI, ErrorMessage.FORBIDDEN_EN),
     // Lỗi không lường trước.
     INTERNAL(HttpStatus.INTERNAL_SERVER_ERROR, ErrorMessage.INTERNAL_VI, ErrorMessage.INTERNAL_EN);
 

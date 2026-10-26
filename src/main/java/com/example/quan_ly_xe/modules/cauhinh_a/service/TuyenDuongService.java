@@ -8,6 +8,7 @@ import com.example.quan_ly_xe.modules.cauhinh_a.dto.request.CapNhatTuyenRequest;
 import com.example.quan_ly_xe.modules.cauhinh_a.dto.request.ThemTuyenRequest;
 import com.example.quan_ly_xe.modules.cauhinh_a.dto.response.TuyenResponse;
 import com.example.quan_ly_xe.modules.cauhinh_a.repository.TuyenDuongSpRepository;
+import com.example.quan_ly_xe.shared.routing.BranchContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +18,8 @@ import java.util.List;
  * Service xử lý UC-003: Thêm tuyến kèm giá vé & UC-004: Sửa bảng giá vé.
  * Kết nối duy nhất vào database của site tương ứng. Việc đọc dữ liệu dùng chung
  * tại DN/HCM do Stored Procedure gọi Linked Server sang HN.
+ * <p>
+ * Quyền ghi: Chỉ site Hà Nội (/hn - CN01) mới có quyền chỉnh sửa tuyến đường và bảng giá vé.
  */
 @Service
 public class TuyenDuongService {
@@ -25,6 +28,14 @@ public class TuyenDuongService {
 
     public TuyenDuongService(TuyenDuongSpRepository tuyenDuongRepository) {
         this.tuyenDuongRepository = tuyenDuongRepository;
+    }
+
+    private void checkBranchWritePermission() {
+        String branch = BranchContextHolder.getBranch();
+        if (branch != null && !"CN01".equalsIgnoreCase(branch)) {
+            throw new AppException(ErrorCode.FORBIDDEN,
+                    "Chỉ chi nhánh Hà Nội (/hn) mới có quyền chỉnh sửa tuyến đường và bảng giá vé. Chi nhánh " + branch + " chỉ có quyền xem.");
+        }
     }
 
     public List<TuyenResponse> layDanhSachTuyen(String maTuyen) {
@@ -37,10 +48,12 @@ public class TuyenDuongService {
     }
 
     /**
-     * UC-003: Thêm tuyến kèm 4 mức giá vé trong cùng một transaction (chỉ site /hn mới được gọi qua filter).
+     * UC-003: Thêm tuyến kèm 4 mức giá vé trong cùng một transaction (chỉ site /hn mới được phép ghi).
      */
     @Transactional
     public TuyenResponse themTuyenVaGia(ThemTuyenRequest req) {
+        checkBranchWritePermission();
+
         if (req.getDiemDau().trim().equalsIgnoreCase(req.getDiemCuoi().trim())) {
             throw new AppException(ErrorCode.E04);
         }
@@ -73,6 +86,8 @@ public class TuyenDuongService {
      */
     @Transactional
     public void upsertBangGiaVe(CapNhatGiaVeRequest req) {
+        checkBranchWritePermission();
+
         if (req.getGiaVe() == null || req.getGiaVe() <= 0) {
             throw new AppException(ErrorCode.E02);
         }
@@ -84,6 +99,8 @@ public class TuyenDuongService {
      */
     @Transactional
     public void capNhatBangGiaVeHangLoat(List<CapNhatGiaVeRequest> requests) {
+        checkBranchWritePermission();
+
         for (CapNhatGiaVeRequest req : requests) {
             upsertBangGiaVe(req);
         }
@@ -94,6 +111,8 @@ public class TuyenDuongService {
      */
     @Transactional
     public void capNhatTuyenDuong(String maTuyen, CapNhatTuyenRequest req) {
+        checkBranchWritePermission();
+
         if (req.getDiemDau().trim().equalsIgnoreCase(req.getDiemCuoi().trim())) {
             throw new AppException(ErrorCode.E04);
         }
@@ -114,6 +133,8 @@ public class TuyenDuongService {
      */
     @Transactional
     public void xoaTuyenDuong(String maTuyen) {
+        checkBranchWritePermission();
+
         tuyenDuongRepository.xoaTuyenDuong(maTuyen);
     }
 }
