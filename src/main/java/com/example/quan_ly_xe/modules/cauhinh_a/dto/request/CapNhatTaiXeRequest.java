@@ -42,4 +42,3 @@ public class CapNhatTaiXeRequest {
     @Pattern(regexp = "^(DangLam|NghiViec)?$", message = "Trạng thái phải là DangLam hoặc NghiViec")
     private String trangThai;
 }
-

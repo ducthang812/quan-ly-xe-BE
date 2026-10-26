@@ -21,8 +21,8 @@ import java.time.LocalDateTime;
  * Trong đó:
  * <ul>
  *   <li><b>/hn/...</b>: Kết nối duy nhất vào database Hà Nội (QLXeKhach_HN, port 1433). Được phép đọc và ghi.</li>
- *   <li><b>/dn/...</b>: Kết nối duy nhất vào database Đà Nẵng (QLXeKhach_DN, port 1434). Chỉ được phép đọc.</li>
- *   <li><b>/hcm/...</b>: Kết nối duy nhất vào database TP.HCM (QLXeKhach_HCM, port 1435). Chỉ được phép đọc.</li>
+ *   <li><b>/dn/...</b>: Kết nối duy nhất vào database Đà Nẵng (QLXeKhach_DN, port 1434). Cho phép đọc và ghi dữ liệu phân mảnh tài xế thuộc Đà Nẵng.</li>
+ *   <li><b>/hcm/...</b>: Kết nối duy nhất vào database TP.HCM (QLXeKhach_HCM, port 1435). Cho phép đọc và ghi dữ liệu phân mảnh tài xế thuộc TP.HCM.</li>
  * </ul>
  * Bắt buộc URL phải bắt đầu bằng /hn, /dn hoặc /hcm (Dạng A). Mọi SP đọc dữ liệu dùng chung tại DN và HCM
  * do SQL Server Linked Server tự động truy vấn sang Hà Nội.
@@ -79,15 +79,18 @@ public class BranchRoutingFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Chỉ client có tiền tố /hn mới được cập nhật (POST, PUT, DELETE, PATCH)
+        // Phân quyền ghi:
+        // - Dữ liệu phân mảnh tài xế (/api/v1/cauhinh/tai-xe/**): Cho phép ghi ở mọi site (/hn, /dn, /hcm) theo phân mảnh cục bộ.
+        // - Dữ liệu dùng chung khác (tham số, tuyến đường, bảng giá vé, bảng lương / chốt lương): Chỉ site Hà Nội (/hn) mới được phép cập nhật.
+        boolean isTaiXeEndpoint = rewrittenUri.startsWith("/api/v1/cauhinh/tai-xe");
         boolean isWriteOperation = "POST".equals(method) || "PUT".equals(method) || "DELETE".equals(method) || "PATCH".equals(method);
-        if (isWriteOperation && !"CN01".equals(branch)) {
+        if (isWriteOperation && !isTaiXeEndpoint && !"CN01".equals(branch)) {
             sendJsonError(
                     response,
                     HttpServletResponse.SC_FORBIDDEN,
                     "FORBIDDEN",
-                    "Chỉ chi nhánh Hà Nội (/hn) mới có quyền cập nhật dữ liệu. Các chi nhánh khác chỉ có quyền đọc.",
-                    "Only /hn site has permission to modify data. Other sites are read-only.",
+                    "Chỉ chi nhánh Hà Nội (/hn) mới có quyền cập nhật dữ liệu cấu hình chung. Các chi nhánh khác chỉ có quyền đọc.",
+                    "Only /hn site has permission to modify shared configuration data. Other sites are read-only.",
                     uri
             );
             return;

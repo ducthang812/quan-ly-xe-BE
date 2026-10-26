@@ -21,6 +21,8 @@ BEGIN
         EXEC('CREATE SYNONYM dbo.LoaiNgay FOR SERVER_HN.QLXeKhach_HN.dbo.LoaiNgay');
     IF NOT EXISTS (SELECT 1 FROM sys.synonyms WHERE name = 'LichNgay')
         EXEC('CREATE SYNONYM dbo.LichNgay FOR SERVER_HN.QLXeKhach_HN.dbo.LichNgay');
+    IF NOT EXISTS (SELECT 1 FROM sys.synonyms WHERE name = 'LichLoaiNgay')
+        EXEC('CREATE SYNONYM dbo.LichLoaiNgay FOR SERVER_HN.QLXeKhach_HN.dbo.LichLoaiNgay');
     IF NOT EXISTS (SELECT 1 FROM sys.synonyms WHERE name = 'TuyenDuong')
         EXEC('CREATE SYNONYM dbo.TuyenDuong FOR SERVER_HN.QLXeKhach_HN.dbo.TuyenDuong');
     IF NOT EXISTS (SELECT 1 FROM sys.synonyms WHERE name = 'BangGiaVe')
@@ -69,22 +71,44 @@ BEGIN
 END;
 GO
 
--- 4. SP: Lấy lịch loại ngày (Sprint 0 - Shared Catalog)
+-- Tạo bảng LichLoaiNgay nếu là Database Hà Nội và chưa tồn tại
+IF (DB_NAME() LIKE '%HN%' AND OBJECT_ID('dbo.LichLoaiNgay', 'U') IS NULL)
+BEGIN
+    CREATE TABLE dbo.LichLoaiNgay (
+        Id INT IDENTITY(1,1) PRIMARY KEY,
+        MaLoaiNgay VARCHAR(20) NOT NULL CONSTRAINT FK_LichLoaiNgay_LoaiNgay REFERENCES LoaiNgay(MaLoaiNgay),
+        TuNgay DATE NOT NULL,
+        DenNgay DATE NOT NULL,
+        MoTa NVARCHAR(100) NULL,
+        CONSTRAINT CK_LichLoaiNgay_Ngay CHECK (TuNgay <= DenNgay)
+    );
+
+    INSERT INTO dbo.LichLoaiNgay (MaLoaiNgay, TuNgay, DenNgay, MoTa) VALUES
+    ('LETET', '2025-01-25', '2025-02-02', N'Tết'),
+    ('LETET', '2025-04-30', '2025-05-04', NULL),
+    ('LETET', '2025-08-30', '2025-09-02', NULL),
+    ('MUADL', '2025-06-01', '2025-08-31', NULL);
+END;
+GO
+
+-- 4. SP: Lấy danh sách lịch loại ngày trực tiếp từ cơ sở dữ liệu
 CREATE OR ALTER PROCEDURE sp_LayDanhSachLichNgay
     @Nam INT = NULL,
     @Thang INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
+
     SELECT 
-        l.Ngay, 
-        l.MaLoaiNgay, 
-        ln.TenLoaiNgay
-    FROM LichNgay l
+        l.Id,
+        l.MaLoaiNgay,
+        ln.TenLoaiNgay,
+        l.TuNgay,
+        l.DenNgay,
+        l.MoTa
+    FROM dbo.LichLoaiNgay l
     JOIN LoaiNgay ln ON l.MaLoaiNgay = ln.MaLoaiNgay
-    WHERE (@Nam IS NULL OR YEAR(l.Ngay) = @Nam)
-      AND (@Thang IS NULL OR MONTH(l.Ngay) = @Thang)
-    ORDER BY l.Ngay ASC;
+    ORDER BY l.TuNgay ASC;
 END;
 GO
 
@@ -99,6 +123,12 @@ CREATE OR ALTER PROCEDURE sp_CapNhatThamSoThuLao
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    -- Ràng buộc phân quyền phân tán: Chỉ database Hà Nội mới có quyền cập nhật tham số dùng chung
+    IF DB_NAME() NOT LIKE '%HN%'
+    BEGIN
+        THROW 50000, N'Chỉ chi nhánh Hà Nội (Trụ sở chính) mới có quyền cập nhật tham số và cấu hình hệ thống. Chi nhánh hiện tại chỉ có quyền đọc.', 1;
+    END;
 
     IF (@DonGiaKm <= 0 OR @HsLai <= 0 OR @HsPhu <= 0 
         OR @HsLuongCap1 <= 0 OR @HsLuongCap2 <= 0 OR @HsLuongCap3 <= 0)
@@ -139,6 +169,12 @@ CREATE OR ALTER PROCEDURE sp_CapNhatThamSoBaoDuongDangKiem
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    -- Ràng buộc phân quyền phân tán: Chỉ database Hà Nội mới có quyền cập nhật tham số dùng chung
+    IF DB_NAME() NOT LIKE '%HN%'
+    BEGIN
+        THROW 50000, N'Chỉ chi nhánh Hà Nội (Trụ sở chính) mới có quyền cập nhật tham số và cấu hình hệ thống. Chi nhánh hiện tại chỉ có quyền đọc.', 1;
+    END;
 
     IF (@ChuKyBd <= 0 OR @KmMoiNgayBd <= 0 OR @CanhBaoNgay <= 0 
         OR @ChuKyDkCu <= 0 OR @ChuKyDkMoi <= 0 OR @TuoiXeCu <= 0)
@@ -187,6 +223,12 @@ CREATE OR ALTER PROCEDURE sp_ThemTuyenVaGia
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    -- Ràng buộc phân quyền phân tán: Chỉ database Hà Nội mới có quyền thêm tuyến đường và giá vé
+    IF DB_NAME() NOT LIKE '%HN%'
+    BEGIN
+        THROW 50000, N'Chỉ chi nhánh Hà Nội (Trụ sở chính) mới có quyền thêm tuyến đường và giá vé. Chi nhánh hiện tại chỉ có quyền đọc.', 1;
+    END;
 
     -- Validate điểm đầu và cuối
     IF (LOWER(LTRIM(RTRIM(@DiemDau))) = LOWER(LTRIM(RTRIM(@DiemCuoi))))
@@ -239,7 +281,7 @@ BEGIN
 END;
 GO
 
--- 8. SP: Cập nhật hoặc thêm giá vé (UC-004 - MERGE BangGiaVe)
+-- 8. SP: Cập nhật hoặc thêm giá vé (UC-004)
 CREATE OR ALTER PROCEDURE sp_UpsertBangGiaVe
     @MaTuyen VARCHAR(10),
     @MaLoaiNgay VARCHAR(20),
@@ -248,18 +290,25 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    -- Ràng buộc phân quyền phân tán: Chỉ database Hà Nội mới có quyền cập nhật bảng giá vé
+    IF DB_NAME() NOT LIKE '%HN%'
+    BEGIN
+        THROW 50000, N'Chỉ chi nhánh Hà Nội (Trụ sở chính) mới có quyền cập nhật bảng giá vé. Chi nhánh hiện tại chỉ có quyền đọc.', 1;
+    END;
+
     IF (@GiaVe <= 0)
     BEGIN
         THROW 50000, N'Giá trị phải lớn hơn 0.', 1;
     END;
 
-    MERGE BangGiaVe AS target
-    USING (SELECT @MaTuyen AS MaTuyen, @MaLoaiNgay AS MaLoaiNgay, @GiaVe AS GiaVe) AS source
-    ON target.MaTuyen = source.MaTuyen AND target.MaLoaiNgay = source.MaLoaiNgay
-    WHEN MATCHED THEN
-        UPDATE SET GiaVe = source.GiaVe
-    WHEN NOT MATCHED THEN
-        INSERT (MaTuyen, MaLoaiNgay, GiaVe) VALUES (source.MaTuyen, source.MaLoaiNgay, source.GiaVe);
+    IF EXISTS (SELECT 1 FROM BangGiaVe WHERE MaTuyen = @MaTuyen AND MaLoaiNgay = @MaLoaiNgay)
+    BEGIN
+        UPDATE BangGiaVe SET GiaVe = @GiaVe WHERE MaTuyen = @MaTuyen AND MaLoaiNgay = @MaLoaiNgay;
+    END
+    ELSE
+    BEGIN
+        INSERT INTO BangGiaVe (MaTuyen, MaLoaiNgay, GiaVe) VALUES (@MaTuyen, @MaLoaiNgay, @GiaVe);
+    END;
 END;
 GO
 
@@ -304,12 +353,27 @@ CREATE OR ALTER PROCEDURE sp_ThemTaiXe
     @Phuong NVARCHAR(50) = NULL,
     @Tinh NVARCHAR(50) = NULL,
     @SoDienThoai VARCHAR(15) = NULL,
-    @MaCN VARCHAR(10),
+    @MaCN VARCHAR(10) = NULL,
     @NgayVaoLam DATE = NULL,
     @MaTX VARCHAR(10) = NULL OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    -- Xác định chi nhánh cục bộ của CSDL đang chạy
+    DECLARE @LocalBranch VARCHAR(10);
+    IF DB_NAME() LIKE '%DN%' SET @LocalBranch = 'CN02';
+    ELSE IF DB_NAME() LIKE '%HCM%' SET @LocalBranch = 'CN03';
+    ELSE SET @LocalBranch = 'CN01';
+
+    IF (@MaCN IS NULL OR LTRIM(RTRIM(@MaCN)) = '')
+        SET @MaCN = @LocalBranch;
+
+    -- Ràng buộc phân mảnh ngang: chỉ được thêm tài xế thuộc chi nhánh của chính mình
+    IF (@MaCN <> @LocalBranch)
+    BEGIN
+        THROW 50000, N'Không thể thêm tài xế cho chi nhánh khác. Chi nhánh hiện tại chỉ có thể thêm tài xế của chính mình.', 1;
+    END;
 
     -- Validate định dạng CCCD đúng 12 chữ số
     IF (LEN(LTRIM(RTRIM(@CCCD))) <> 12)
@@ -328,13 +392,29 @@ BEGIN
 
     BEGIN TRANSACTION;
     BEGIN TRY
-        -- Tự sinh mã tài xế TX + 4 số (TX0001, TX0002...)
+        -- Tự sinh mã tài xế phân biệt theo chi nhánh
         DECLARE @MaxNum INT = 0;
-        SELECT @MaxNum = ISNULL(MAX(TRY_CAST(SUBSTRING(MaTX, 3, LEN(MaTX)) AS INT)), 0)
-        FROM TaiXe
-        WHERE MaTX LIKE 'TX%';
-
-        SET @MaTX = 'TX' + RIGHT('0000' + CAST(@MaxNum + 1 AS VARCHAR(10)), 4);
+        IF (@LocalBranch = 'CN02')
+        BEGIN
+            SELECT @MaxNum = ISNULL(MAX(TRY_CAST(SUBSTRING(MaTX, 6, LEN(MaTX)) AS INT)), 0)
+            FROM TaiXe
+            WHERE MaTX LIKE 'TX_DN%';
+            SET @MaTX = 'TX_DN' + RIGHT('00' + CAST(@MaxNum + 1 AS VARCHAR(10)), 2);
+        END
+        ELSE IF (@LocalBranch = 'CN03')
+        BEGIN
+            SELECT @MaxNum = ISNULL(MAX(TRY_CAST(SUBSTRING(MaTX, 7, LEN(MaTX)) AS INT)), 0)
+            FROM TaiXe
+            WHERE MaTX LIKE 'TX_HCM%';
+            SET @MaTX = 'TX_HCM' + RIGHT('00' + CAST(@MaxNum + 1 AS VARCHAR(10)), 2);
+        END
+        ELSE
+        BEGIN
+            SELECT @MaxNum = ISNULL(MAX(TRY_CAST(SUBSTRING(MaTX, 3, LEN(MaTX)) AS INT)), 0)
+            FROM TaiXe
+            WHERE MaTX LIKE 'TX[0-9]%';
+            SET @MaTX = 'TX' + RIGHT('0000' + CAST(@MaxNum + 1 AS VARCHAR(10)), 4);
+        END;
 
         INSERT INTO TaiXe (
             MaTX, HoDem, Ten, NgaySinh, CCCD, SoGPLX, HangGPLX,
@@ -361,7 +441,7 @@ BEGIN
 END;
 GO
 
--- 11. SP: Lấy danh sách tài xế (UC-007 & Danh mục)
+-- 11. SP: Lấy danh sách tài xế (UC-007 & Phân tán liên chi nhánh)
 CREATE OR ALTER PROCEDURE sp_LayDanhSachTaiXe
     @MaCN VARCHAR(10) = NULL,
     @TrangThai VARCHAR(20) = NULL,
@@ -373,6 +453,122 @@ BEGIN
     IF (@Thang IS NULL)
         SET @Thang = FORMAT(GETDATE(), 'yyyy-MM');
 
+    -- Xác định chi nhánh cục bộ của CSDL đang chạy
+    DECLARE @LocalBranch VARCHAR(10);
+    IF DB_NAME() LIKE '%DN%' SET @LocalBranch = 'CN02';
+    ELSE IF DB_NAME() LIKE '%HCM%' SET @LocalBranch = 'CN03';
+    ELSE SET @LocalBranch = 'CN01';
+
+    -- Nếu không chỉ định chi nhánh, mặc định lấy chi nhánh hiện tại
+    IF (@MaCN IS NULL OR LTRIM(RTRIM(@MaCN)) = '')
+        SET @MaCN = @LocalBranch;
+
+    -- 1. Nếu cần lấy Hà Nội (CN01) nhưng đây không phải DB Hà Nội
+    IF (@MaCN = 'CN01' AND @LocalBranch <> 'CN01')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_HN.QLXeKhach_HN.dbo.sp_LayDanhSachTaiXe @MaCN = @pMaCN, @TrangThai = @pTrangThai, @Thang = @pThang',
+            N'@pMaCN VARCHAR(10), @pTrangThai VARCHAR(20), @pThang VARCHAR(7)',
+            @pMaCN = 'CN01', @pTrangThai = @TrangThai, @pThang = @Thang;
+        RETURN;
+    END;
+
+    -- 2. Nếu cần lấy Đà Nẵng (CN02) nhưng đây không phải DB Đà Nẵng
+    IF (@MaCN = 'CN02' AND @LocalBranch <> 'CN02')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_DN.QLXeKhach_DN.dbo.sp_LayDanhSachTaiXe @MaCN = @pMaCN, @TrangThai = @pTrangThai, @Thang = @pThang',
+            N'@pMaCN VARCHAR(10), @pTrangThai VARCHAR(20), @pThang VARCHAR(7)',
+            @pMaCN = 'CN02', @pTrangThai = @TrangThai, @pThang = @Thang;
+        RETURN;
+    END;
+
+    -- 3. Nếu cần lấy TP.HCM (CN03) nhưng đây không phải DB TP.HCM
+    IF (@MaCN = 'CN03' AND @LocalBranch <> 'CN03')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_HCM.QLXeKhach_HCM.dbo.sp_LayDanhSachTaiXe @MaCN = @pMaCN, @TrangThai = @pTrangThai, @Thang = @pThang',
+            N'@pMaCN VARCHAR(10), @pTrangThai VARCHAR(20), @pThang VARCHAR(7)',
+            @pMaCN = 'CN03', @pTrangThai = @TrangThai, @pThang = @Thang;
+        RETURN;
+    END;
+
+    -- 4. Nếu xem tất cả các chi nhánh (ALL)
+    IF (@MaCN = 'ALL')
+    BEGIN
+        CREATE TABLE #AllTaiXe (
+            MaTX VARCHAR(10),
+            HoDem NVARCHAR(50),
+            Ten NVARCHAR(20),
+            HoTen NVARCHAR(71),
+            NgaySinh DATE,
+            NamSinh INT,
+            CCCD VARCHAR(12),
+            SoGPLX VARCHAR(20),
+            HangGPLX VARCHAR(5),
+            SoNha NVARCHAR(100),
+            Phuong NVARCHAR(50),
+            Tinh NVARCHAR(50),
+            NgayVaoLam DATE,
+            TrangThai VARCHAR(20),
+            MaCN VARCHAR(10),
+            TenCN NVARCHAR(100),
+            SoDienThoai VARCHAR(15),
+            SoChuyen INT,
+            ThuLaoThang FLOAT
+        );
+
+        INSERT INTO #AllTaiXe
+        SELECT 
+            tx.MaTX, 
+            tx.HoDem, 
+            tx.Ten, 
+            (tx.HoDem + ' ' + tx.Ten) AS HoTen,
+            tx.NgaySinh,
+            YEAR(tx.NgaySinh) AS NamSinh,
+            tx.CCCD, 
+            tx.SoGPLX, 
+            tx.HangGPLX, 
+            tx.SoNha, 
+            tx.Phuong, 
+            tx.Tinh, 
+            tx.NgayVaoLam, 
+            tx.TrangThai, 
+            tx.MaCN,
+            cn.TenCN,
+            (SELECT TOP 1 SoDienThoai FROM TaiXe_SDT WHERE MaTX = tx.MaTX) AS SoDienThoai,
+            ISNULL(chuyen.SoChuyen, 0) AS SoChuyen,
+            ISNULL(chuyen.ThuLaoThang, 0) AS ThuLaoThang
+        FROM TaiXe tx
+        JOIN ChiNhanh cn ON tx.MaCN = cn.MaCN
+        LEFT JOIN (
+            SELECT pc.MaTX,
+                   COUNT(cx.MaChuyen) AS SoChuyen,
+                   SUM(pc.ThuLao) AS ThuLaoThang
+            FROM PhanCong pc
+            JOIN ChuyenXe cx ON pc.MaChuyen = cx.MaChuyen
+            WHERE cx.TrangThai = 'HoanThanh'
+              AND FORMAT(cx.GioKhoiHanhDK, 'yyyy-MM') = @Thang
+            GROUP BY pc.MaTX
+        ) chuyen ON tx.MaTX = chuyen.MaTX
+        WHERE (@TrangThai IS NULL OR tx.TrangThai = @TrangThai);
+
+        IF (@LocalBranch <> 'CN01')
+            EXEC sp_executesql N'INSERT INTO #AllTaiXe EXEC SERVER_HN.QLXeKhach_HN.dbo.sp_LayDanhSachTaiXe @MaCN = ''CN01'', @TrangThai = @pTrangThai, @Thang = @pThang;',
+                N'@pTrangThai VARCHAR(20), @pThang VARCHAR(7)', @pTrangThai = @TrangThai, @pThang = @Thang;
+        IF (@LocalBranch <> 'CN02')
+            EXEC sp_executesql N'INSERT INTO #AllTaiXe EXEC SERVER_DN.QLXeKhach_DN.dbo.sp_LayDanhSachTaiXe @MaCN = ''CN02'', @TrangThai = @pTrangThai, @Thang = @pThang;',
+                N'@pTrangThai VARCHAR(20), @pThang VARCHAR(7)', @pTrangThai = @TrangThai, @pThang = @Thang;
+        IF (@LocalBranch <> 'CN03')
+            EXEC sp_executesql N'INSERT INTO #AllTaiXe EXEC SERVER_HCM.QLXeKhach_HCM.dbo.sp_LayDanhSachTaiXe @MaCN = ''CN03'', @TrangThai = @pTrangThai, @Thang = @pThang;',
+                N'@pTrangThai VARCHAR(20), @pThang VARCHAR(7)', @pTrangThai = @TrangThai, @pThang = @Thang;
+
+        SELECT * FROM #AllTaiXe ORDER BY MaTX ASC;
+        DROP TABLE #AllTaiXe;
+        RETURN;
+    END;
+
+    -- 5. Truy vấn dữ liệu cục bộ của chi nhánh hiện tại
     SELECT 
         tx.MaTX, 
         tx.HoDem, 
@@ -405,9 +601,119 @@ BEGIN
           AND FORMAT(cx.GioKhoiHanhDK, 'yyyy-MM') = @Thang
         GROUP BY pc.MaTX
     ) chuyen ON tx.MaTX = chuyen.MaTX
-    WHERE (@MaCN IS NULL OR tx.MaCN = @MaCN)
+    WHERE tx.MaCN = @LocalBranch
       AND (@TrangThai IS NULL OR tx.TrangThai = @TrangThai)
     ORDER BY tx.MaTX ASC;
+END;
+GO
+
+-- 11.1. SP: Lấy chi tiết một tài xế (Phân tán liên chi nhánh)
+CREATE OR ALTER PROCEDURE sp_LayChiTietTaiXe
+    @MaTX VARCHAR(10),
+    @Thang VARCHAR(7) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF (@Thang IS NULL)
+        SET @Thang = FORMAT(GETDATE(), 'yyyy-MM');
+
+    -- 1. Tìm ở bảng cục bộ trước
+    IF EXISTS (SELECT 1 FROM TaiXe WHERE MaTX = @MaTX)
+    BEGIN
+        SELECT 
+            tx.MaTX, 
+            tx.HoDem, 
+            tx.Ten, 
+            (tx.HoDem + ' ' + tx.Ten) AS HoTen,
+            tx.NgaySinh,
+            YEAR(tx.NgaySinh) AS NamSinh,
+            tx.CCCD, 
+            tx.SoGPLX, 
+            tx.HangGPLX, 
+            tx.SoNha, 
+            tx.Phuong, 
+            tx.Tinh, 
+            tx.NgayVaoLam, 
+            tx.TrangThai, 
+            tx.MaCN,
+            cn.TenCN,
+            (SELECT TOP 1 SoDienThoai FROM TaiXe_SDT WHERE MaTX = tx.MaTX) AS SoDienThoai,
+            ISNULL(chuyen.SoChuyen, 0) AS SoChuyen,
+            ISNULL(chuyen.ThuLaoThang, 0) AS ThuLaoThang
+        FROM TaiXe tx
+        JOIN ChiNhanh cn ON tx.MaCN = cn.MaCN
+        LEFT JOIN (
+            SELECT pc.MaTX,
+                   COUNT(cx.MaChuyen) AS SoChuyen,
+                   SUM(pc.ThuLao) AS ThuLaoThang
+            FROM PhanCong pc
+            JOIN ChuyenXe cx ON pc.MaChuyen = cx.MaChuyen
+            WHERE cx.TrangThai = 'HoanThanh'
+              AND FORMAT(cx.GioKhoiHanhDK, 'yyyy-MM') = @Thang
+            GROUP BY pc.MaTX
+        ) chuyen ON tx.MaTX = chuyen.MaTX
+        WHERE tx.MaTX = @MaTX;
+        RETURN;
+    END;
+
+    -- Xác định chi nhánh cục bộ
+    DECLARE @LocalBranch VARCHAR(10);
+    IF DB_NAME() LIKE '%DN%' SET @LocalBranch = 'CN02';
+    ELSE IF DB_NAME() LIKE '%HCM%' SET @LocalBranch = 'CN03';
+    ELSE SET @LocalBranch = 'CN01';
+
+    -- 2. Nếu không có ở cục bộ, kiểm tra ở các site khác qua Linked Server
+    IF (@LocalBranch <> 'CN01')
+    BEGIN
+        DECLARE @FoundHN INT = 0;
+        EXEC sp_executesql 
+            N'IF EXISTS (SELECT 1 FROM SERVER_HN.QLXeKhach_HN.dbo.TaiXe WHERE MaTX = @pMaTX) SET @pFound = 1;',
+            N'@pMaTX VARCHAR(10), @pFound INT OUTPUT',
+            @pMaTX = @MaTX, @pFound = @FoundHN OUTPUT;
+        IF (@FoundHN = 1)
+        BEGIN
+            EXEC sp_executesql 
+                N'EXEC SERVER_HN.QLXeKhach_HN.dbo.sp_LayChiTietTaiXe @MaTX = @pMaTX, @Thang = @pThang;',
+                N'@pMaTX VARCHAR(10), @pThang VARCHAR(7)',
+                @pMaTX = @MaTX, @pThang = @Thang;
+            RETURN;
+        END;
+    END;
+
+    IF (@LocalBranch <> 'CN02')
+    BEGIN
+        DECLARE @FoundDN INT = 0;
+        EXEC sp_executesql 
+            N'IF EXISTS (SELECT 1 FROM SERVER_DN.QLXeKhach_DN.dbo.TaiXe WHERE MaTX = @pMaTX) SET @pFound = 1;',
+            N'@pMaTX VARCHAR(10), @pFound INT OUTPUT',
+            @pMaTX = @MaTX, @pFound = @FoundDN OUTPUT;
+        IF (@FoundDN = 1)
+        BEGIN
+            EXEC sp_executesql 
+                N'EXEC SERVER_DN.QLXeKhach_DN.dbo.sp_LayChiTietTaiXe @MaTX = @pMaTX, @Thang = @pThang;',
+                N'@pMaTX VARCHAR(10), @pThang VARCHAR(7)',
+                @pMaTX = @MaTX, @pThang = @Thang;
+            RETURN;
+        END;
+    END;
+
+    IF (@LocalBranch <> 'CN03')
+    BEGIN
+        DECLARE @FoundHCM INT = 0;
+        EXEC sp_executesql 
+            N'IF EXISTS (SELECT 1 FROM SERVER_HCM.QLXeKhach_HCM.dbo.TaiXe WHERE MaTX = @pMaTX) SET @pFound = 1;',
+            N'@pMaTX VARCHAR(10), @pFound INT OUTPUT',
+            @pMaTX = @MaTX, @pFound = @FoundHCM OUTPUT;
+        IF (@FoundHCM = 1)
+        BEGIN
+            EXEC sp_executesql 
+                N'EXEC SERVER_HCM.QLXeKhach_HCM.dbo.sp_LayChiTietTaiXe @MaTX = @pMaTX, @Thang = @pThang;',
+                N'@pMaTX VARCHAR(10), @pThang VARCHAR(7)',
+                @pMaTX = @MaTX, @pThang = @Thang;
+            RETURN;
+        END;
+    END;
 END;
 GO
 
@@ -421,6 +727,12 @@ CREATE OR ALTER PROCEDURE sp_CapNhatTuyenDuong
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    -- Ràng buộc phân quyền phân tán: Chỉ database Hà Nội mới có quyền cập nhật tuyến đường
+    IF DB_NAME() NOT LIKE '%HN%'
+    BEGIN
+        THROW 50000, N'Chỉ chi nhánh Hà Nội (Trụ sở chính) mới có quyền cập nhật tuyến đường. Chi nhánh hiện tại chỉ có quyền đọc.', 1;
+    END;
 
     IF (LOWER(LTRIM(RTRIM(@DiemDau))) = LOWER(LTRIM(RTRIM(@DiemCuoi))))
     BEGIN
@@ -447,6 +759,12 @@ CREATE OR ALTER PROCEDURE sp_XoaTuyenDuong
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    -- Ràng buộc phân quyền phân tán: Chỉ database Hà Nội mới có quyền xóa tuyến đường
+    IF DB_NAME() NOT LIKE '%HN%'
+    BEGIN
+        THROW 50000, N'Chỉ chi nhánh Hà Nội (Trụ sở chính) mới có quyền xóa tuyến đường. Chi nhánh hiện tại chỉ có quyền đọc.', 1;
+    END;
 
     IF EXISTS (SELECT 1 FROM ChuyenXe WHERE MaTuyen = @MaTuyen)
     BEGIN
@@ -482,6 +800,12 @@ CREATE OR ALTER PROCEDURE sp_CapNhatTaiXe
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    -- Kiểm tra tài xế có thuộc chi nhánh hiện tại không
+    IF NOT EXISTS (SELECT 1 FROM TaiXe WHERE MaTX = @MaTX)
+    BEGIN
+        THROW 50000, N'Tài xế không thuộc chi nhánh này hoặc không tồn tại. Bạn chỉ có quyền xem, không được chỉnh sửa.', 1;
+    END;
 
     IF (DATEDIFF(YEAR, @NgaySinh, GETDATE()) < 21)
     BEGIN
@@ -532,6 +856,12 @@ BEGIN
     IF (@TrangThai NOT IN ('DangLam', 'NghiViec'))
     BEGIN
         THROW 50000, N'Trạng thái tài xế không hợp lệ.', 1;
+    END;
+
+    -- Kiểm tra tài xế có thuộc chi nhánh hiện tại không
+    IF NOT EXISTS (SELECT 1 FROM TaiXe WHERE MaTX = @MaTX)
+    BEGIN
+        THROW 50000, N'Tài xế không thuộc chi nhánh này hoặc không tồn tại. Bạn chỉ có quyền xem, không được chỉnh sửa.', 1;
     END;
 
     UPDATE TaiXe SET TrangThai = @TrangThai WHERE MaTX = @MaTX;

@@ -207,6 +207,8 @@ public final class Constant {
         public static final String E32_EN = "Cannot connect to the database. Please try again.";
         public static final String NOT_FOUND_VI = "Không tìm thấy {0}.";
         public static final String NOT_FOUND_EN = "{0} not found.";
+        public static final String FORBIDDEN_VI = "Không có quyền thực hiện thao tác: {0}";
+        public static final String FORBIDDEN_EN = "Forbidden operation: {0}";
         public static final String INTERNAL_VI = "Đã xảy ra lỗi không mong muốn.";
         public static final String INTERNAL_EN = "An unexpected error occurred.";
     }

@@ -97,9 +97,12 @@ public class TaiXeSpRepository {
         return jdbcTemplate.query("{call sp_LayDanhSachTaiXe(?, ?, ?)}", TAI_XE_MAPPER, maCN, trangThai, thang);
     }
 
+    /**
+     * Gọi SP: sp_LayChiTietTaiXe
+     */
     public Optional<TaiXeResponse> layChiTietTaiXe(String maTX, String thang) {
-        List<TaiXeResponse> list = layDanhSachTaiXe(null, null, thang);
-        return list.stream().filter(tx -> tx.getMaTX().equalsIgnoreCase(maTX)).findFirst();
+        List<TaiXeResponse> list = jdbcTemplate.query("{call sp_LayChiTietTaiXe(?, ?)}", TAI_XE_MAPPER, maTX, thang);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
     }
 
     /**
@@ -120,4 +123,3 @@ public class TaiXeSpRepository {
         jdbcTemplate.update("{call sp_DoiTrangThaiTaiXe(?, ?)}", maTX, trangThai);
     }
 }
-

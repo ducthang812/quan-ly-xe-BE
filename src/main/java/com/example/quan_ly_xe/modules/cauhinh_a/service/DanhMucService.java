@@ -30,7 +30,7 @@ public class DanhMucService {
     }
 
     /**
-     * Danh sách lịch ngày.
+     * Danh sách lịch loại ngày lấy trực tiếp từ CSDL (bảng LichLoaiNgay).
      */
     public List<LichNgayResponse> layDanhSachLichNgay(Integer nam, Integer thang) {
         return danhMucRepository.layDanhSachLichNgay(nam, thang);

@@ -34,7 +34,7 @@ public class DanhMucController {
     }
 
     /**
-     * Danh sách lịch ngày (Sprint 0 - Shared Catalog).
+     * Danh sách lịch loại ngày trực tiếp từ cơ sở dữ liệu.
      */
     @GetMapping("/lich-ngay")
     public ApiResponse<List<LichNgayResponse>> layDanhSachLichNgay(
@@ -51,4 +51,3 @@ public class DanhMucController {
         return ApiResponse.ok(danhMucService.kiemTraMucDoSanSang());
     }
 }
-

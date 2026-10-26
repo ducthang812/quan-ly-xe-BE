@@ -31,5 +31,6 @@ public class TaiXeResponse {
     private String tenCN;
     private Integer soChuyen;
     private Double thuLaoThang;
+    /** Cờ phân quyền thao tác: true nếu tài xế thuộc chi nhánh hiện tại (được sửa/đổi trạng thái); false nếu chỉ được xem */
+    private Boolean coQuyenThaoTac;
 }
-
