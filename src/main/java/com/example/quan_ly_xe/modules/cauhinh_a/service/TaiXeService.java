@@ -62,8 +62,13 @@ public class TaiXeService {
         if (thang == null || thang.isBlank()) {
             thang = currentDateProvider.today().format(DateTimeFormatter.ofPattern("yyyy-MM"));
         }
-        if (maCN == null || maCN.isBlank()) {
+        if (maCN == null || maCN.isBlank() || "ALL".equalsIgnoreCase(maCN.trim()) || "TAT_CA".equalsIgnoreCase(maCN.trim())) {
             maCN = activeBranch;
+        } else {
+            String s = maCN.trim().toUpperCase();
+            if ("HN".equals(s) || "CN01".equals(s)) maCN = "CN01";
+            else if ("DN".equals(s) || "CN02".equals(s)) maCN = "CN02";
+            else if ("HCM".equals(s) || "CN03".equals(s)) maCN = "CN03";
         }
 
         List<TaiXeResponse> list = taiXeRepository.layDanhSachTaiXe(maCN, trangThai, thang);
@@ -104,9 +109,15 @@ public class TaiXeService {
 
         // Chi nhánh: nếu không truyền thì lấy theo site đang thao tác
         String maCN = req.getMaCN();
-        if (maCN == null || maCN.isBlank()) {
+        if (maCN == null || maCN.isBlank() || "ALL".equalsIgnoreCase(maCN.trim()) || "TAT_CA".equalsIgnoreCase(maCN.trim())) {
             maCN = activeBranch;
-        } else if (!activeBranch.equalsIgnoreCase(maCN.trim())) {
+        } else {
+            String s = maCN.trim().toUpperCase();
+            if ("HN".equals(s) || "CN01".equals(s)) maCN = "CN01";
+            else if ("DN".equals(s) || "CN02".equals(s)) maCN = "CN02";
+            else if ("HCM".equals(s) || "CN03".equals(s)) maCN = "CN03";
+        }
+        if (!activeBranch.equalsIgnoreCase(maCN.trim())) {
             throw new AppException(ErrorCode.FORBIDDEN,
                     "Tại site " + activeBranch + " chỉ được phép thêm tài xế của " + activeBranch + ". Không thể thêm tài xế cho " + maCN.trim() + ".");
         }

@@ -32,22 +32,40 @@ GO
 -- 1. SP: Lấy danh sách các tháng có chuyến (phục vụ Combobox Tháng ở MH05)
 -- ==============================================================================
 CREATE OR ALTER PROCEDURE sp_LayDanhSachThangCoChuyen
+    @ThangHienTai VARCHAR(7) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    IF NOT EXISTS (SELECT 1 FROM ChuyenXe)
-    BEGIN
-        SELECT '2025-06' AS Thang
-        UNION
-        SELECT '2025-05' AS Thang
-        ORDER BY Thang DESC;
-        RETURN;
-    END;
+    IF @ThangHienTai IS NULL OR @ThangHienTai = ''
+        SET @ThangHienTai = FORMAT(GETDATE(), 'yyyy-MM');
 
-    SELECT DISTINCT FORMAT(GioKhoiHanhDK, 'yyyy-MM') AS Thang
+    CREATE TABLE #DanhSachThang (
+        Thang VARCHAR(7),
+        ThuTu INT
+    );
+
+    -- 1. Luôn đưa tháng hiện tại vào đầu danh sách (ThuTu = 0)
+    INSERT INTO #DanhSachThang (Thang, ThuTu)
+    VALUES (@ThangHienTai, 0);
+
+    -- 2. Thêm các tháng có chuyến từ bảng cục bộ (ThuTu = 1)
+    INSERT INTO #DanhSachThang (Thang, ThuTu)
+    SELECT DISTINCT FORMAT(GioKhoiHanhDK, 'yyyy-MM'), 1
     FROM ChuyenXe
-    ORDER BY Thang DESC;
+    WHERE GioKhoiHanhDK IS NOT NULL
+      AND FORMAT(GioKhoiHanhDK, 'yyyy-MM') <> @ThangHienTai;
+
+    -- 3. Trả về kết quả: Tháng hiện tại đầu tiên, sau đó là các tháng có dữ liệu giảm dần
+    SELECT Thang
+    FROM (
+        SELECT Thang, MIN(ThuTu) AS ThuTu
+        FROM #DanhSachThang
+        GROUP BY Thang
+    ) t
+    ORDER BY ThuTu ASC, Thang DESC;
+
+    DROP TABLE #DanhSachThang;
 END;
 GO
 
@@ -62,15 +80,52 @@ BEGIN
     SET NOCOUNT ON;
 
     IF @Thang IS NULL OR @Thang = ''
-        SET @Thang = '2025-06';
+        SET @Thang = FORMAT(GETDATE(), 'yyyy-MM');
 
-    IF @MaCN = 'ALL' OR @MaCN = ''
-        SET @MaCN = NULL;
+    DECLARE @LocalBranch VARCHAR(10);
+    IF DB_NAME() LIKE '%DN%' SET @LocalBranch = 'CN02';
+    ELSE IF DB_NAME() LIKE '%HCM%' SET @LocalBranch = 'CN03';
+    ELSE SET @LocalBranch = 'CN01';
 
+    -- Chuẩn hóa mã chi nhánh: Nếu không chỉ định hoặc là ALL, mặc định lấy chi nhánh hiện tại
+    IF @MaCN IS NOT NULL
+    BEGIN
+        SET @MaCN = UPPER(LTRIM(RTRIM(@MaCN)));
+        IF @MaCN = 'HN' SET @MaCN = 'CN01';
+        ELSE IF @MaCN = 'DN' SET @MaCN = 'CN02';
+        ELSE IF @MaCN = 'HCM' SET @MaCN = 'CN03';
+        ELSE IF @MaCN = 'ALL' OR @MaCN = 'TAT_CA' OR @MaCN = '' SET @MaCN = @LocalBranch;
+    END
+    ELSE
+    BEGIN
+        SET @MaCN = @LocalBranch;
+    END;
+
+    -- 1. Nếu đứng tại HN và chọn DN
+    IF (@LocalBranch = 'CN01' AND @MaCN = 'CN02')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_DN.QLXeKhach_DN.dbo.sp_TongHopSoLieuThang @Thang = @pThang, @MaCN = ''CN02''',
+            N'@pThang VARCHAR(7)',
+            @pThang = @Thang;
+        RETURN;
+    END;
+
+    -- 2. Nếu đứng tại HN và chọn HCM
+    IF (@LocalBranch = 'CN01' AND @MaCN = 'CN03')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_HCM.QLXeKhach_HCM.dbo.sp_TongHopSoLieuThang @Thang = @pThang, @MaCN = ''CN03''',
+            N'@pThang VARCHAR(7)',
+            @pThang = @Thang;
+        RETURN;
+    END;
+
+    -- 3. Truy vấn cục bộ
     DECLARE @NgayDauThang DATETIME = CAST(@Thang + '-01' AS DATETIME);
     DECLARE @NgayDauThangSau DATETIME = DATEADD(MONTH, 1, @NgayDauThang);
 
-    -- 1. Doanh thu tháng (F15) và Số vé tính doanh thu
+    -- Doanh thu tháng (F15) và Số vé tính doanh thu
     DECLARE @DoanhThuThang FLOAT = 0;
     DECLARE @SoVeTinhDoanhThu INT = 0;
 
@@ -78,45 +133,38 @@ BEGIN
         @DoanhThuThang = ISNULL(SUM(v.GiaVe), 0),
         @SoVeTinhDoanhThu = COUNT(v.MaVe)
     FROM Ve v
-    JOIN ChuyenXe c ON v.MaChuyen = c.MaChuyen
-    JOIN Xe x ON c.MaXe = x.MaXe
-    WHERE c.TrangThai = 'HoanThanh'
-      AND v.TrangThai = 'DaBan'
-      AND c.GioKhoiHanhDK >= @NgayDauThang
-      AND c.GioKhoiHanhDK < @NgayDauThangSau
-      AND (@MaCN IS NULL OR x.MaCN = @MaCN);
+    JOIN ChuyenXe cx ON v.MaChuyen = cx.MaChuyen
+    JOIN Xe x ON cx.MaXe = x.MaXe
+    WHERE cx.TrangThai = 'HoanThanh'
+      AND cx.GioKhoiHanhDK >= @NgayDauThang
+      AND cx.GioKhoiHanhDK < @NgayDauThangSau
+      AND x.MaCN = @MaCN;
 
-    -- 2. Tổng lương tài xế (F02)
+    -- Tổng lương tài xế (F02)
     DECLARE @TongLuongTaiXe FLOAT = 0;
 
-    -- Nếu tháng này đã chốt lương -> Lấy trực tiếp từ bảng snapshot BangLuong (BR-MH05-05)
     IF EXISTS (
         SELECT 1 
         FROM BangLuong bl
         JOIN TaiXe tx ON bl.MaTX = tx.MaTX
-        WHERE bl.Thang = @Thang 
-          AND (@MaCN IS NULL OR tx.MaCN = @MaCN)
+        WHERE bl.Thang = @Thang AND tx.MaCN = @MaCN
     )
     BEGIN
-        SELECT 
-            @TongLuongTaiXe = ISNULL(SUM(bl.TongLuong), 0)
+        SELECT @TongLuongTaiXe = ISNULL(SUM(bl.TongLuong), 0)
         FROM BangLuong bl
         JOIN TaiXe tx ON bl.MaTX = tx.MaTX
-        WHERE bl.Thang = @Thang
-          AND (@MaCN IS NULL OR tx.MaCN = @MaCN);
+        WHERE bl.Thang = @Thang AND tx.MaCN = @MaCN;
     END
     ELSE
     BEGIN
-        -- Chưa chốt -> Tính toán động từ các chuyến Hoàn thành
-        SELECT 
-            @TongLuongTaiXe = ISNULL(SUM(pc.ThuLao), 0)
+        SELECT @TongLuongTaiXe = ISNULL(SUM(pc.ThuLao), 0)
         FROM PhanCong pc
-        JOIN ChuyenXe c ON pc.MaChuyen = c.MaChuyen
+        JOIN ChuyenXe cx ON pc.MaChuyen = cx.MaChuyen
         JOIN TaiXe tx ON pc.MaTX = tx.MaTX
-        WHERE c.TrangThai = 'HoanThanh'
-          AND c.GioKhoiHanhDK >= @NgayDauThang
-          AND c.GioKhoiHanhDK < @NgayDauThangSau
-          AND (@MaCN IS NULL OR tx.MaCN = @MaCN);
+        WHERE cx.TrangThai = 'HoanThanh'
+          AND cx.GioKhoiHanhDK >= @NgayDauThang
+          AND cx.GioKhoiHanhDK < @NgayDauThangSau
+          AND tx.MaCN = @MaCN;
     END;
 
     SELECT 
@@ -129,7 +177,6 @@ GO
 
 -- ==============================================================================
 -- 3. SP: sp_R01 - Báo cáo Lương tài xế (MH05 Tab 1)
--- BR-MH05-02: Lương tháng = tổng thù lao đã lưu của các phân công thuộc chuyến Hoàn thành
 -- ==============================================================================
 CREATE OR ALTER PROCEDURE sp_R01
     @Thang VARCHAR(7) = NULL,
@@ -139,18 +186,55 @@ BEGIN
     SET NOCOUNT ON;
 
     IF @Thang IS NULL OR @Thang = ''
-        SET @Thang = '2025-06';
+        SET @Thang = FORMAT(GETDATE(), 'yyyy-MM');
 
-    IF @MaCN = 'ALL' OR @MaCN = ''
-        SET @MaCN = NULL;
+    DECLARE @LocalBranch VARCHAR(10);
+    IF DB_NAME() LIKE '%DN%' SET @LocalBranch = 'CN02';
+    ELSE IF DB_NAME() LIKE '%HCM%' SET @LocalBranch = 'CN03';
+    ELSE SET @LocalBranch = 'CN01';
 
-    -- 1. Nếu tháng đã chốt lương -> Lấy trực tiếp từ snapshot BangLuong (BR-MH05-05)
+    -- Chuẩn hóa tham số @MaCN
+    IF @MaCN IS NOT NULL
+    BEGIN
+        SET @MaCN = UPPER(LTRIM(RTRIM(@MaCN)));
+        IF @MaCN = 'HN' SET @MaCN = 'CN01';
+        ELSE IF @MaCN = 'DN' SET @MaCN = 'CN02';
+        ELSE IF @MaCN = 'HCM' SET @MaCN = 'CN03';
+        ELSE IF @MaCN = 'ALL' OR @MaCN = 'TAT_CA' OR @MaCN = '' SET @MaCN = @LocalBranch;
+    END
+    ELSE
+    BEGIN
+        SET @MaCN = @LocalBranch;
+    END;
+
+    -- 1. Nếu đứng tại Site HN và chọn xem riêng Site DN (CN02)
+    IF (@LocalBranch = 'CN01' AND @MaCN = 'CN02')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_DN.QLXeKhach_DN.dbo.sp_R01 @Thang = @pThang, @MaCN = ''CN02''',
+            N'@pThang VARCHAR(7)',
+            @pThang = @Thang;
+        RETURN;
+    END;
+
+    -- 2. Nếu đứng tại Site HN và chọn xem riêng Site HCM (CN03)
+    IF (@LocalBranch = 'CN01' AND @MaCN = 'CN03')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_HCM.QLXeKhach_HCM.dbo.sp_R01 @Thang = @pThang, @MaCN = ''CN03''',
+            N'@pThang VARCHAR(7)',
+            @pThang = @Thang;
+        RETURN;
+    END;
+
+    -- 3. Truy vấn cục bộ (tại @LocalBranch)
+    -- 3.1. Nếu tháng đã chốt lương -> Lấy trực tiếp từ snapshot BangLuong
     IF EXISTS (
         SELECT 1 
         FROM BangLuong bl
         JOIN TaiXe tx ON bl.MaTX = tx.MaTX
         WHERE bl.Thang = @Thang 
-          AND (@MaCN IS NULL OR tx.MaCN = @MaCN)
+          AND tx.MaCN = @MaCN
     )
     BEGIN
         SELECT 
@@ -167,13 +251,13 @@ BEGIN
         JOIN TaiXe tx ON bl.MaTX = tx.MaTX
         LEFT JOIN ChiNhanh cn ON tx.MaCN = cn.MaCN
         WHERE bl.Thang = @Thang
-          AND (@MaCN IS NULL OR tx.MaCN = @MaCN)
+          AND tx.MaCN = @MaCN
           AND tx.TrangThai = 'DangLam'
         ORDER BY bl.TongLuong DESC, bl.MaTX ASC;
         RETURN;
     END;
 
-    -- 2. Nếu tháng chưa chốt -> Tính toán động từ các chuyến Hoàn thành
+    -- 3.2. Nếu tháng chưa chốt -> Tính toán động từ các chuyến Hoàn thành
     DECLARE @NgayDauThang DATETIME = CAST(@Thang + '-01' AS DATETIME);
     DECLARE @NgayDauThangSau DATETIME = DATEADD(MONTH, 1, @NgayDauThang);
 
@@ -193,7 +277,7 @@ BEGIN
     LEFT JOIN ChuyenXe c ON pc.MaChuyen = c.MaChuyen 
                          AND c.GioKhoiHanhDK >= @NgayDauThang 
                          AND c.GioKhoiHanhDK < @NgayDauThangSau
-    WHERE (@MaCN IS NULL OR tx.MaCN = @MaCN)
+    WHERE tx.MaCN = @MaCN
       AND tx.TrangThai = 'DangLam'
     GROUP BY tx.MaTX, tx.HoDem, tx.Ten, tx.MaCN, cn.TenCN
     ORDER BY TongLuong DESC, tx.MaTX ASC;
@@ -202,7 +286,6 @@ GO
 
 -- ==============================================================================
 -- 4. SP: sp_R02 - Báo cáo Doanh thu theo xe (MH05 Tab 2)
--- BR-MH05-01 & BR-MH05-03: Chỉ liệt kê xe đang Hoạt động
 -- ==============================================================================
 CREATE OR ALTER PROCEDURE sp_R02
     @Thang VARCHAR(7) = NULL,
@@ -212,15 +295,48 @@ BEGIN
     SET NOCOUNT ON;
 
     IF @Thang IS NULL OR @Thang = ''
-        SET @Thang = '2025-06';
+        SET @Thang = FORMAT(GETDATE(), 'yyyy-MM');
 
-    IF @MaCN = 'ALL' OR @MaCN = ''
-        SET @MaCN = NULL;
+    DECLARE @LocalBranch VARCHAR(10);
+    IF DB_NAME() LIKE '%DN%' SET @LocalBranch = 'CN02';
+    ELSE IF DB_NAME() LIKE '%HCM%' SET @LocalBranch = 'CN03';
+    ELSE SET @LocalBranch = 'CN01';
 
+    IF @MaCN IS NOT NULL
+    BEGIN
+        SET @MaCN = UPPER(LTRIM(RTRIM(@MaCN)));
+        IF @MaCN = 'HN' SET @MaCN = 'CN01';
+        ELSE IF @MaCN = 'DN' SET @MaCN = 'CN02';
+        ELSE IF @MaCN = 'HCM' SET @MaCN = 'CN03';
+        ELSE IF @MaCN = 'ALL' OR @MaCN = 'TAT_CA' OR @MaCN = '' SET @MaCN = @LocalBranch;
+    END
+    ELSE
+    BEGIN
+        SET @MaCN = @LocalBranch;
+    END;
+
+    IF (@LocalBranch = 'CN01' AND @MaCN = 'CN02')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_DN.QLXeKhach_DN.dbo.sp_R02 @Thang = @pThang, @MaCN = ''CN02''',
+            N'@pThang VARCHAR(7)',
+            @pThang = @Thang;
+        RETURN;
+    END;
+
+    IF (@LocalBranch = 'CN01' AND @MaCN = 'CN03')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_HCM.QLXeKhach_HCM.dbo.sp_R02 @Thang = @pThang, @MaCN = ''CN03''',
+            N'@pThang VARCHAR(7)',
+            @pThang = @Thang;
+        RETURN;
+    END;
+
+    -- Truy vấn cục bộ
     DECLARE @NgayDauThang DATETIME = CAST(@Thang + '-01' AS DATETIME);
     DECLARE @NgayDauThangSau DATETIME = DATEADD(MONTH, 1, @NgayDauThang);
 
-    -- Tính tổng doanh thu lọc theo điều kiện để tính tỷ lệ %
     DECLARE @TongDoanhThu FLOAT = 0;
 
     SELECT @TongDoanhThu = ISNULL(SUM(v.GiaVe), 0)
@@ -232,7 +348,7 @@ BEGIN
       AND c.GioKhoiHanhDK >= @NgayDauThang
       AND c.GioKhoiHanhDK < @NgayDauThangSau
       AND x.TrangThai = 'HoatDong'
-      AND (@MaCN IS NULL OR x.MaCN = @MaCN);
+      AND x.MaCN = @MaCN;
 
     SELECT 
         x.MaXe,
@@ -255,8 +371,8 @@ BEGIN
                         AND c.GioKhoiHanhDK >= @NgayDauThang 
                         AND c.GioKhoiHanhDK < @NgayDauThangSau
     LEFT JOIN Ve v ON c.MaChuyen = v.MaChuyen AND v.TrangThai = 'DaBan'
-    WHERE x.TrangThai = 'HoatDong' -- BR-MH05-03: Chỉ liệt kê xe đang Hoạt động
-      AND (@MaCN IS NULL OR x.MaCN = @MaCN)
+    WHERE x.TrangThai = 'HoatDong'
+      AND x.MaCN = @MaCN
     GROUP BY x.MaXe, x.BienSo, lx.TenLoaiXe, x.MaLoaiXe, x.MaCN, cn.TenCN
     ORDER BY DoanhThu DESC, x.BienSo ASC;
 END;
@@ -273,11 +389,45 @@ BEGIN
     SET NOCOUNT ON;
 
     IF @Thang IS NULL OR @Thang = ''
-        SET @Thang = '2025-06';
+        SET @Thang = FORMAT(GETDATE(), 'yyyy-MM');
 
-    IF @MaCN = 'ALL' OR @MaCN = ''
-        SET @MaCN = NULL;
+    DECLARE @LocalBranch VARCHAR(10);
+    IF DB_NAME() LIKE '%DN%' SET @LocalBranch = 'CN02';
+    ELSE IF DB_NAME() LIKE '%HCM%' SET @LocalBranch = 'CN03';
+    ELSE SET @LocalBranch = 'CN01';
 
+    IF @MaCN IS NOT NULL
+    BEGIN
+        SET @MaCN = UPPER(LTRIM(RTRIM(@MaCN)));
+        IF @MaCN = 'HN' SET @MaCN = 'CN01';
+        ELSE IF @MaCN = 'DN' SET @MaCN = 'CN02';
+        ELSE IF @MaCN = 'HCM' SET @MaCN = 'CN03';
+        ELSE IF @MaCN = 'ALL' OR @MaCN = 'TAT_CA' OR @MaCN = '' SET @MaCN = @LocalBranch;
+    END
+    ELSE
+    BEGIN
+        SET @MaCN = @LocalBranch;
+    END;
+
+    IF (@LocalBranch = 'CN01' AND @MaCN = 'CN02')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_DN.QLXeKhach_DN.dbo.sp_R03 @Thang = @pThang, @MaCN = ''CN02''',
+            N'@pThang VARCHAR(7)',
+            @pThang = @Thang;
+        RETURN;
+    END;
+
+    IF (@LocalBranch = 'CN01' AND @MaCN = 'CN03')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_HCM.QLXeKhach_HCM.dbo.sp_R03 @Thang = @pThang, @MaCN = ''CN03''',
+            N'@pThang VARCHAR(7)',
+            @pThang = @Thang;
+        RETURN;
+    END;
+
+    -- Truy vấn cục bộ
     DECLARE @NgayDauThang DATETIME = CAST(@Thang + '-01' AS DATETIME);
     DECLARE @NgayDauThangSau DATETIME = DATEADD(MONTH, 1, @NgayDauThang);
 
@@ -291,7 +441,7 @@ BEGIN
       AND v.TrangThai = 'DaBan'
       AND c.GioKhoiHanhDK >= @NgayDauThang
       AND c.GioKhoiHanhDK < @NgayDauThangSau
-      AND (@MaCN IS NULL OR x.MaCN = @MaCN);
+      AND x.MaCN = @MaCN;
 
     SELECT 
         t.MaTuyen,
@@ -310,7 +460,7 @@ BEGIN
     LEFT JOIN ChuyenXe c ON t.MaTuyen = c.MaTuyen 
                         AND c.GioKhoiHanhDK >= @NgayDauThang 
                         AND c.GioKhoiHanhDK < @NgayDauThangSau
-    LEFT JOIN Xe x ON c.MaXe = x.MaXe AND (@MaCN IS NULL OR x.MaCN = @MaCN)
+    LEFT JOIN Xe x ON c.MaXe = x.MaXe AND x.MaCN = @MaCN
     LEFT JOIN Ve v ON c.MaChuyen = v.MaChuyen AND v.TrangThai = 'DaBan'
     GROUP BY t.MaTuyen, t.DiemDau, t.DiemCuoi, t.CapDo, t.DoDaiKm
     ORDER BY DoanhThu DESC, t.MaTuyen ASC;
@@ -328,11 +478,45 @@ BEGIN
     SET NOCOUNT ON;
 
     IF @Thang IS NULL OR @Thang = ''
-        SET @Thang = '2025-06';
+        SET @Thang = FORMAT(GETDATE(), 'yyyy-MM');
 
-    IF @MaCN = 'ALL' OR @MaCN = ''
-        SET @MaCN = NULL;
+    DECLARE @LocalBranch VARCHAR(10);
+    IF DB_NAME() LIKE '%DN%' SET @LocalBranch = 'CN02';
+    ELSE IF DB_NAME() LIKE '%HCM%' SET @LocalBranch = 'CN03';
+    ELSE SET @LocalBranch = 'CN01';
 
+    IF @MaCN IS NOT NULL
+    BEGIN
+        SET @MaCN = UPPER(LTRIM(RTRIM(@MaCN)));
+        IF @MaCN = 'HN' SET @MaCN = 'CN01';
+        ELSE IF @MaCN = 'DN' SET @MaCN = 'CN02';
+        ELSE IF @MaCN = 'HCM' SET @MaCN = 'CN03';
+        ELSE IF @MaCN = 'ALL' OR @MaCN = 'TAT_CA' OR @MaCN = '' SET @MaCN = @LocalBranch;
+    END
+    ELSE
+    BEGIN
+        SET @MaCN = @LocalBranch;
+    END;
+
+    IF (@LocalBranch = 'CN01' AND @MaCN = 'CN02')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_DN.QLXeKhach_DN.dbo.sp_R04 @Thang = @pThang, @MaCN = ''CN02''',
+            N'@pThang VARCHAR(7)',
+            @pThang = @Thang;
+        RETURN;
+    END;
+
+    IF (@LocalBranch = 'CN01' AND @MaCN = 'CN03')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_HCM.QLXeKhach_HCM.dbo.sp_R04 @Thang = @pThang, @MaCN = ''CN03''',
+            N'@pThang VARCHAR(7)',
+            @pThang = @Thang;
+        RETURN;
+    END;
+
+    -- Truy vấn cục bộ
     DECLARE @NgayDauThang DATETIME = CAST(@Thang + '-01' AS DATETIME);
     DECLARE @NgayDauThangSau DATETIME = DATEADD(MONTH, 1, @NgayDauThang);
 
@@ -346,7 +530,7 @@ BEGIN
       AND v.TrangThai = 'DaBan'
       AND c.GioKhoiHanhDK >= @NgayDauThang
       AND c.GioKhoiHanhDK < @NgayDauThangSau
-      AND (@MaCN IS NULL OR x.MaCN = @MaCN);
+      AND x.MaCN = @MaCN;
 
     SELECT 
         lx.MaLoaiXe,
@@ -361,7 +545,7 @@ BEGIN
             ELSE 0.0
         END AS TyLe
     FROM LoaiXe lx
-    LEFT JOIN Xe x ON lx.MaLoaiXe = x.MaLoaiXe AND (@MaCN IS NULL OR x.MaCN = @MaCN)
+    LEFT JOIN Xe x ON lx.MaLoaiXe = x.MaLoaiXe AND x.MaCN = @MaCN
     LEFT JOIN ChuyenXe c ON x.MaXe = c.MaXe 
                         AND c.GioKhoiHanhDK >= @NgayDauThang 
                         AND c.GioKhoiHanhDK < @NgayDauThangSau
@@ -373,7 +557,6 @@ GO
 
 -- ==============================================================================
 -- 7. SP: sp_R06 - Báo cáo Xe quá hạn bảo dưỡng (MH05 Tab 5)
--- BR-MH05-04, Công thức F10 (Km làm việc), F11 (Ngày bảo dưỡng tiếp theo)
 -- ==============================================================================
 CREATE OR ALTER PROCEDURE sp_R06
     @NgayXet DATE = NULL,
@@ -385,9 +568,43 @@ BEGIN
     IF @NgayXet IS NULL
         SET @NgayXet = CAST(GETDATE() AS DATE);
 
-    IF @MaCN = 'ALL' OR @MaCN = ''
-        SET @MaCN = NULL;
+    DECLARE @LocalBranch VARCHAR(10);
+    IF DB_NAME() LIKE '%DN%' SET @LocalBranch = 'CN02';
+    ELSE IF DB_NAME() LIKE '%HCM%' SET @LocalBranch = 'CN03';
+    ELSE SET @LocalBranch = 'CN01';
 
+    IF @MaCN IS NOT NULL
+    BEGIN
+        SET @MaCN = UPPER(LTRIM(RTRIM(@MaCN)));
+        IF @MaCN = 'HN' SET @MaCN = 'CN01';
+        ELSE IF @MaCN = 'DN' SET @MaCN = 'CN02';
+        ELSE IF @MaCN = 'HCM' SET @MaCN = 'CN03';
+        ELSE IF @MaCN = 'ALL' OR @MaCN = 'TAT_CA' OR @MaCN = '' SET @MaCN = @LocalBranch;
+    END
+    ELSE
+    BEGIN
+        SET @MaCN = @LocalBranch;
+    END;
+
+    IF (@LocalBranch = 'CN01' AND @MaCN = 'CN02')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_DN.QLXeKhach_DN.dbo.sp_R06 @NgayXet = @pNgayXet, @MaCN = ''CN02''',
+            N'@pNgayXet DATE',
+            @pNgayXet = @NgayXet;
+        RETURN;
+    END;
+
+    IF (@LocalBranch = 'CN01' AND @MaCN = 'CN03')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_HCM.QLXeKhach_HCM.dbo.sp_R06 @NgayXet = @pNgayXet, @MaCN = ''CN03''',
+            N'@pNgayXet DATE',
+            @pNgayXet = @NgayXet;
+        RETURN;
+    END;
+
+    -- Truy vấn cục bộ
     DECLARE @ChuKyBD INT = 360;
     DECLARE @KmMoiNgayBD FLOAT = 100;
 
@@ -406,8 +623,8 @@ BEGIN
             x.NgayDuaVaoSD,
             ISNULL((SELECT MAX(bd.NgayBaoDuong) FROM BaoDuong bd WHERE bd.MaXe = x.MaXe), x.NgayDuaVaoSD) AS NgayBaoDuongGanNhat
         FROM Xe x
-        WHERE x.TrangThai IN ('HoatDong', 'BaoDuong') -- Chỉ xét xe khác NgungHD
-          AND (@MaCN IS NULL OR x.MaCN = @MaCN)
+        WHERE x.TrangThai IN ('HoatDong', 'BaoDuong')
+          AND x.MaCN = @MaCN
     ),
     XeKmLamViec AS (
         SELECT 
@@ -436,7 +653,6 @@ BEGIN
             klv.NgayDuaVaoSD,
             klv.NgayBaoDuongGanNhat,
             klv.KmLamViec,
-            -- F11 = NgayBaoDuongGanNhat + CHU_KY_BD - FLOOR(KmLamViec / KM_MOI_NGAY_BD)
             DATEADD(DAY, @ChuKyBD - FLOOR(klv.KmLamViec / @KmMoiNgayBD), klv.NgayBaoDuongGanNhat) AS NgayBaoDuongTiepTheo
         FROM XeKmLamViec klv
         LEFT JOIN LoaiXe lx ON klv.MaLoaiXe = lx.MaLoaiXe
@@ -454,15 +670,13 @@ BEGIN
         NgayBaoDuongTiepTheo,
         DATEDIFF(DAY, NgayBaoDuongTiepTheo, @NgayXet) AS SoNgayQuaHan
     FROM XeHanBaoDuong
-    WHERE NgayBaoDuongTiepTheo < @NgayXet -- BR-MH05-04: Quá hạn bảo dưỡng tại ngày xét
+    WHERE NgayBaoDuongTiepTheo < @NgayXet
     ORDER BY SoNgayQuaHan DESC, BienSo ASC;
 END;
 GO
 
 -- ==============================================================================
--- 8. SP: sp_ChotLuongThang (UC-017 Chốt lương tháng)
--- BR-MH05-05: Xóa lương cũ của tháng rồi ghi mới cho mọi tài xế (kể cả 0 đồng)
--- trong 1 giao dịch; số đã chốt không đổi khi dữ liệu sửa sau
+-- 8. SP: sp_ChotLuongThang (MH05 - Nút Chốt lương tháng)
 -- ==============================================================================
 CREATE OR ALTER PROCEDURE sp_ChotLuongThang
     @Thang VARCHAR(7),
@@ -470,65 +684,97 @@ CREATE OR ALTER PROCEDURE sp_ChotLuongThang
 AS
 BEGIN
     SET NOCOUNT ON;
-    SET XACT_ABORT ON;
 
     IF @Thang IS NULL OR LEN(@Thang) <> 7 OR SUBSTRING(@Thang, 5, 1) <> '-'
     BEGIN
-        THROW 50000, N'Định dạng tháng không hợp lệ (bắt buộc yyyy-MM).', 1;
+        RAISERROR(N'Tháng chốt lương không hợp lệ (định dạng chuẩn: yyyy-MM).', 16, 1);
+        RETURN;
     END;
 
-    IF @MaCN = 'ALL' OR @MaCN = ''
-        SET @MaCN = NULL;
+    DECLARE @LocalBranch VARCHAR(10);
+    IF DB_NAME() LIKE '%DN%' SET @LocalBranch = 'CN02';
+    ELSE IF DB_NAME() LIKE '%HCM%' SET @LocalBranch = 'CN03';
+    ELSE SET @LocalBranch = 'CN01';
 
+    IF @MaCN IS NOT NULL
+    BEGIN
+        SET @MaCN = UPPER(LTRIM(RTRIM(@MaCN)));
+        IF @MaCN = 'HN' SET @MaCN = 'CN01';
+        ELSE IF @MaCN = 'DN' SET @MaCN = 'CN02';
+        ELSE IF @MaCN = 'HCM' SET @MaCN = 'CN03';
+        ELSE IF @MaCN = 'ALL' OR @MaCN = 'TAT_CA' OR @MaCN = '' SET @MaCN = @LocalBranch;
+    END
+    ELSE
+    BEGIN
+        SET @MaCN = @LocalBranch;
+    END;
+
+    IF (@LocalBranch = 'CN01' AND @MaCN = 'CN02')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_DN.QLXeKhach_DN.dbo.sp_ChotLuongThang @Thang = @pThang, @MaCN = ''CN02''',
+            N'@pThang VARCHAR(7)',
+            @pThang = @Thang;
+        RETURN;
+    END;
+
+    IF (@LocalBranch = 'CN01' AND @MaCN = 'CN03')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_HCM.QLXeKhach_HCM.dbo.sp_ChotLuongThang @Thang = @pThang, @MaCN = ''CN03''',
+            N'@pThang VARCHAR(7)',
+            @pThang = @Thang;
+        RETURN;
+    END;
+
+    -- Truy vấn cục bộ
     DECLARE @NgayDauThang DATETIME = CAST(@Thang + '-01' AS DATETIME);
     DECLARE @NgayDauThangSau DATETIME = DATEADD(MONTH, 1, @NgayDauThang);
+    DECLARE @NgayChotHienTai DATETIME = GETDATE();
 
+    BEGIN TRANSACTION;
     BEGIN TRY
-        BEGIN TRANSACTION;
+        DELETE bl
+        FROM BangLuong bl
+        JOIN TaiXe tx ON bl.MaTX = tx.MaTX
+        WHERE bl.Thang = @Thang
+          AND tx.MaCN = @MaCN;
 
-        -- 1. Xóa dữ liệu lương cũ của tháng trong BangLuong
-        IF @MaCN IS NULL
-        BEGIN
-            DELETE FROM BangLuong WHERE Thang = @Thang;
-        END
-        ELSE
-        BEGIN
-            DELETE bl 
-            FROM BangLuong bl
-            JOIN TaiXe tx ON bl.MaTX = tx.MaTX
-            WHERE bl.Thang = @Thang AND tx.MaCN = @MaCN;
-        END;
-
-        -- 2. Ghi mới cho mọi tài xế (kể cả 0 đồng)
         INSERT INTO BangLuong (MaTX, Thang, SoChuyenLai, SoChuyenPhu, TongLuong, NgayChot)
         SELECT 
             tx.MaTX,
-            @Thang,
+            @Thang AS Thang,
             COUNT(CASE WHEN c.TrangThai = 'HoanThanh' AND pc.VaiTro = 'LAI' THEN 1 END) AS SoChuyenLai,
             COUNT(CASE WHEN c.TrangThai = 'HoanThanh' AND pc.VaiTro = 'PHU' THEN 1 END) AS SoChuyenPhu,
             ISNULL(SUM(CASE WHEN c.TrangThai = 'HoanThanh' THEN pc.ThuLao ELSE 0 END), 0) AS TongLuong,
-            GETDATE() AS NgayChot
+            @NgayChotHienTai AS NgayChot
         FROM TaiXe tx
         LEFT JOIN PhanCong pc ON tx.MaTX = pc.MaTX
         LEFT JOIN ChuyenXe c ON pc.MaChuyen = c.MaChuyen 
                              AND c.GioKhoiHanhDK >= @NgayDauThang 
                              AND c.GioKhoiHanhDK < @NgayDauThangSau
-        WHERE (@MaCN IS NULL OR tx.MaCN = @MaCN)
+        WHERE tx.MaCN = @MaCN
+          AND tx.TrangThai = 'DangLam'
         GROUP BY tx.MaTX;
 
-        DECLARE @SoDongDaChot INT = @@ROWCOUNT;
-        DECLARE @TongTienLuongDaChot FLOAT = 0;
-        SELECT @TongTienLuongDaChot = ISNULL(SUM(TongLuong), 0) FROM BangLuong WHERE Thang = @Thang;
+        DECLARE @SoDongDaLuu INT = @@ROWCOUNT;
+        DECLARE @TongLuongDaLuu FLOAT = 0;
+
+        SELECT @TongLuongDaLuu = ISNULL(SUM(bl.TongLuong), 0)
+        FROM BangLuong bl
+        JOIN TaiXe tx ON bl.MaTX = tx.MaTX
+        WHERE bl.Thang = @Thang
+          AND tx.MaCN = @MaCN;
 
         COMMIT TRANSACTION;
 
         SELECT 
             @Thang AS Thang,
-            @SoDongDaChot AS SoDong,
-            @TongTienLuongDaChot AS TongLuong,
-            @TongTienLuongDaChot AS TongTienLuong,
-            GETDATE() AS NgayChot,
-            N'Chốt lương tháng ' + @Thang + N' thành công với ' + CAST(@SoDongDaChot AS NVARCHAR(10)) + N' tài xế.' AS ThongBao;
+            CAST(1 AS BIT) AS DaChot,
+            @SoDongDaLuu AS SoDong,
+            @TongLuongDaLuu AS TongLuong,
+            @NgayChotHienTai AS NgayChot,
+            N'Chốt lương tháng ' + @Thang + N' thành công cho ' + CAST(@SoDongDaLuu AS NVARCHAR(10)) + N' tài xế.' AS ThongBao;
     END TRY
     BEGIN CATCH
         IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
@@ -547,9 +793,43 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    IF @MaCN = 'ALL' OR @MaCN = ''
-        SET @MaCN = NULL;
+    DECLARE @LocalBranch VARCHAR(10);
+    IF DB_NAME() LIKE '%DN%' SET @LocalBranch = 'CN02';
+    ELSE IF DB_NAME() LIKE '%HCM%' SET @LocalBranch = 'CN03';
+    ELSE SET @LocalBranch = 'CN01';
 
+    IF @MaCN IS NOT NULL
+    BEGIN
+        SET @MaCN = UPPER(LTRIM(RTRIM(@MaCN)));
+        IF @MaCN = 'HN' SET @MaCN = 'CN01';
+        ELSE IF @MaCN = 'DN' SET @MaCN = 'CN02';
+        ELSE IF @MaCN = 'HCM' SET @MaCN = 'CN03';
+        ELSE IF @MaCN = 'ALL' OR @MaCN = 'TAT_CA' OR @MaCN = '' SET @MaCN = @LocalBranch;
+    END
+    ELSE
+    BEGIN
+        SET @MaCN = @LocalBranch;
+    END;
+
+    IF (@LocalBranch = 'CN01' AND @MaCN = 'CN02')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_DN.QLXeKhach_DN.dbo.sp_KiemTraTrangThaiChotLuong @Thang = @pThang, @MaCN = ''CN02''',
+            N'@pThang VARCHAR(7)',
+            @pThang = @Thang;
+        RETURN;
+    END;
+
+    IF (@LocalBranch = 'CN01' AND @MaCN = 'CN03')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_HCM.QLXeKhach_HCM.dbo.sp_KiemTraTrangThaiChotLuong @Thang = @pThang, @MaCN = ''CN03''',
+            N'@pThang VARCHAR(7)',
+            @pThang = @Thang;
+        RETURN;
+    END;
+
+    -- Truy vấn cục bộ
     DECLARE @SoDong INT = 0;
     DECLARE @TongLuong FLOAT = 0;
     DECLARE @NgayChot DATETIME = NULL;
@@ -561,7 +841,7 @@ BEGIN
     FROM BangLuong bl
     JOIN TaiXe tx ON bl.MaTX = tx.MaTX
     WHERE bl.Thang = @Thang
-      AND (@MaCN IS NULL OR tx.MaCN = @MaCN);
+      AND tx.MaCN = @MaCN;
 
     IF @SoDong > 0
     BEGIN
@@ -596,11 +876,47 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    IF @MaCN = 'ALL' OR @MaCN = ''
-        SET @MaCN = NULL;
+    DECLARE @LocalBranch VARCHAR(10);
+    IF DB_NAME() LIKE '%DN%' SET @LocalBranch = 'CN02';
+    ELSE IF DB_NAME() LIKE '%HCM%' SET @LocalBranch = 'CN03';
+    ELSE SET @LocalBranch = 'CN01';
 
+    IF @MaCN IS NOT NULL
+    BEGIN
+        SET @MaCN = UPPER(LTRIM(RTRIM(@MaCN)));
+        IF @MaCN = 'HN' SET @MaCN = 'CN01';
+        ELSE IF @MaCN = 'DN' SET @MaCN = 'CN02';
+        ELSE IF @MaCN = 'HCM' SET @MaCN = 'CN03';
+        ELSE IF @MaCN = 'ALL' OR @MaCN = 'TAT_CA' OR @MaCN = '' SET @MaCN = @LocalBranch;
+    END
+    ELSE
+    BEGIN
+        SET @MaCN = @LocalBranch;
+    END;
+
+    IF (@LocalBranch = 'CN01' AND @MaCN = 'CN02')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_DN.QLXeKhach_DN.dbo.sp_LayDanhSachBangLuong @Thang = @pThang, @MaCN = ''CN02''',
+            N'@pThang VARCHAR(7)',
+            @pThang = @Thang;
+        RETURN;
+    END;
+
+    IF (@LocalBranch = 'CN01' AND @MaCN = 'CN03')
+    BEGIN
+        EXEC sp_executesql 
+            N'EXEC SERVER_HCM.QLXeKhach_HCM.dbo.sp_LayDanhSachBangLuong @Thang = @pThang, @MaCN = ''CN03''',
+            N'@pThang VARCHAR(7)',
+            @pThang = @Thang;
+        RETURN;
+    END;
+
+    -- Truy vấn cục bộ
     SELECT 
         bl.MaTX,
+        tx.HoDem,
+        tx.Ten,
         (tx.HoDem + ' ' + tx.Ten) AS HoTen,
         tx.MaCN,
         ISNULL(cn.TenCN, tx.MaCN) AS TenCN,
@@ -613,8 +929,7 @@ BEGIN
     JOIN TaiXe tx ON bl.MaTX = tx.MaTX
     LEFT JOIN ChiNhanh cn ON tx.MaCN = cn.MaCN
     WHERE bl.Thang = @Thang
-      AND (@MaCN IS NULL OR tx.MaCN = @MaCN)
+      AND tx.MaCN = @MaCN
     ORDER BY bl.TongLuong DESC, bl.MaTX ASC;
 END;
 GO
-
