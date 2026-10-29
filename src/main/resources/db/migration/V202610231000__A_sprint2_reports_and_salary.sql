@@ -89,15 +89,35 @@ BEGIN
     -- 2. Tổng lương tài xế (F02)
     DECLARE @TongLuongTaiXe FLOAT = 0;
 
-    SELECT 
-        @TongLuongTaiXe = ISNULL(SUM(pc.ThuLao), 0)
-    FROM PhanCong pc
-    JOIN ChuyenXe c ON pc.MaChuyen = c.MaChuyen
-    JOIN TaiXe tx ON pc.MaTX = tx.MaTX
-    WHERE c.TrangThai = 'HoanThanh'
-      AND c.GioKhoiHanhDK >= @NgayDauThang
-      AND c.GioKhoiHanhDK < @NgayDauThangSau
-      AND (@MaCN IS NULL OR tx.MaCN = @MaCN);
+    -- Nếu tháng này đã chốt lương -> Lấy trực tiếp từ bảng snapshot BangLuong (BR-MH05-05)
+    IF EXISTS (
+        SELECT 1 
+        FROM BangLuong bl
+        JOIN TaiXe tx ON bl.MaTX = tx.MaTX
+        WHERE bl.Thang = @Thang 
+          AND (@MaCN IS NULL OR tx.MaCN = @MaCN)
+    )
+    BEGIN
+        SELECT 
+            @TongLuongTaiXe = ISNULL(SUM(bl.TongLuong), 0)
+        FROM BangLuong bl
+        JOIN TaiXe tx ON bl.MaTX = tx.MaTX
+        WHERE bl.Thang = @Thang
+          AND (@MaCN IS NULL OR tx.MaCN = @MaCN);
+    END
+    ELSE
+    BEGIN
+        -- Chưa chốt -> Tính toán động từ các chuyến Hoàn thành
+        SELECT 
+            @TongLuongTaiXe = ISNULL(SUM(pc.ThuLao), 0)
+        FROM PhanCong pc
+        JOIN ChuyenXe c ON pc.MaChuyen = c.MaChuyen
+        JOIN TaiXe tx ON pc.MaTX = tx.MaTX
+        WHERE c.TrangThai = 'HoanThanh'
+          AND c.GioKhoiHanhDK >= @NgayDauThang
+          AND c.GioKhoiHanhDK < @NgayDauThangSau
+          AND (@MaCN IS NULL OR tx.MaCN = @MaCN);
+    END;
 
     SELECT 
         @Thang AS Thang,
@@ -124,6 +144,36 @@ BEGIN
     IF @MaCN = 'ALL' OR @MaCN = ''
         SET @MaCN = NULL;
 
+    -- 1. Nếu tháng đã chốt lương -> Lấy trực tiếp từ snapshot BangLuong (BR-MH05-05)
+    IF EXISTS (
+        SELECT 1 
+        FROM BangLuong bl
+        JOIN TaiXe tx ON bl.MaTX = tx.MaTX
+        WHERE bl.Thang = @Thang 
+          AND (@MaCN IS NULL OR tx.MaCN = @MaCN)
+    )
+    BEGIN
+        SELECT 
+            bl.MaTX,
+            tx.HoDem,
+            tx.Ten,
+            (tx.HoDem + ' ' + tx.Ten) AS HoTen,
+            tx.MaCN,
+            ISNULL(cn.TenCN, tx.MaCN) AS TenCN,
+            bl.SoChuyenLai,
+            bl.SoChuyenPhu,
+            bl.TongLuong
+        FROM BangLuong bl
+        JOIN TaiXe tx ON bl.MaTX = tx.MaTX
+        LEFT JOIN ChiNhanh cn ON tx.MaCN = cn.MaCN
+        WHERE bl.Thang = @Thang
+          AND (@MaCN IS NULL OR tx.MaCN = @MaCN)
+          AND tx.TrangThai = 'DangLam'
+        ORDER BY bl.TongLuong DESC, bl.MaTX ASC;
+        RETURN;
+    END;
+
+    -- 2. Nếu tháng chưa chốt -> Tính toán động từ các chuyến Hoàn thành
     DECLARE @NgayDauThang DATETIME = CAST(@Thang + '-01' AS DATETIME);
     DECLARE @NgayDauThangSau DATETIME = DATEADD(MONTH, 1, @NgayDauThang);
 
