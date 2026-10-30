@@ -81,10 +81,12 @@ public class BranchRoutingFilter extends OncePerRequestFilter {
 
         // Phân quyền ghi:
         // - Dữ liệu phân mảnh tài xế (/api/v1/cauhinh/tai-xe/**): Cho phép ghi ở mọi site (/hn, /dn, /hcm) theo phân mảnh cục bộ.
+        // - Dữ liệu phân mảnh đội xe của C (/api/v1/doixe/**: Xe, DangKiem, BaoDuong): Cho phép ghi ở mọi site theo phân mảnh cục bộ.
         // - Dữ liệu dùng chung khác (tham số, tuyến đường, bảng giá vé, bảng lương / chốt lương): Chỉ site Hà Nội (/hn) mới được phép cập nhật.
         boolean isTaiXeEndpoint = rewrittenUri.startsWith("/api/v1/cauhinh/tai-xe");
+        boolean isDoiXeEndpoint = rewrittenUri.startsWith("/api/v1/doixe/");
         boolean isWriteOperation = "POST".equals(method) || "PUT".equals(method) || "DELETE".equals(method) || "PATCH".equals(method);
-        if (isWriteOperation && !isTaiXeEndpoint && !"CN01".equals(branch)) {
+        if (isWriteOperation && !isTaiXeEndpoint && !isDoiXeEndpoint && !"CN01".equals(branch)) {
             sendJsonError(
                     response,
                     HttpServletResponse.SC_FORBIDDEN,
