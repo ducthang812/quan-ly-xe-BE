@@ -68,6 +68,15 @@ public enum ErrorCode {
     // ── Hạ tầng ────────────────────────────────────────────────────────────────
     E32(HttpStatus.SERVICE_UNAVAILABLE, ErrorMessage.E32_VI, ErrorMessage.E32_EN),
 
+    DRIVER_NOT_ACTIVE(HttpStatus.UNPROCESSABLE_CONTENT,
+            ErrorMessage.DRIVER_NOT_ACTIVE_VI, ErrorMessage.DRIVER_NOT_ACTIVE_EN, ThrowCode.N50301),
+    TRIP_NOT_CANCELLABLE(HttpStatus.CONFLICT,
+            ErrorMessage.TRIP_NOT_CANCELLABLE_VI, ErrorMessage.TRIP_NOT_CANCELLABLE_EN, ThrowCode.N54001),
+    TICKET_ALREADY_CANCELLED(HttpStatus.CONFLICT,
+            ErrorMessage.TICKET_ALREADY_CANCELLED_VI, ErrorMessage.TICKET_ALREADY_CANCELLED_EN, ThrowCode.N54002),
+    TRIP_CODE_EXHAUSTED(HttpStatus.CONFLICT,
+            ErrorMessage.TRIP_CODE_EXHAUSTED_VI, ErrorMessage.TRIP_CODE_EXHAUSTED_EN, ThrowCode.N54003),
+
     // Tài nguyên không tồn tại (không nằm trong bảng SRS nhưng BE cần cho REST).
     NOT_FOUND(HttpStatus.NOT_FOUND, ErrorMessage.NOT_FOUND_VI, ErrorMessage.NOT_FOUND_EN),
     // Không có quyền thao tác (phân mảnh chi nhánh, bảo mật...).

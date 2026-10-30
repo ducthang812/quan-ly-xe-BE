@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.sql.SQLException;
+import java.text.MessageFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -139,7 +140,10 @@ public class GlobalExceptionHandler {
         }
 
         if (mapped != null) {
-            return build(mapped, null, null, req, null);
+            String argument = sqlMessageArgument(raw, mapped);
+            String vi = argument == null ? null : MessageFormat.format(mapped.getMessageVi(), argument);
+            String en = argument == null ? null : MessageFormat.format(mapped.getMessageEn(), argument);
+            return build(mapped, vi, en, req, null);
         }
 
         log.error("Lỗi CSDL chưa ánh xạ tại {}: {}", req.getRequestURI(), raw, ex);
@@ -192,5 +196,32 @@ public class GlobalExceptionHandler {
             }
         }
         return msg;
+    }
+
+    /** Lấy giá trị trong quy ước THROW "mã|giá trị"; lỗi cũ không có dấu | giữ nguyên hành vi. */
+    private String sqlMessageArgument(String raw, ErrorCode mapped) {
+        if (raw == null) {
+            return null;
+        }
+        int separator = -1;
+        for (String sqlCode : mapped.getSqlCodes()) {
+            int codeStart = raw.indexOf(sqlCode + "|");
+            if (codeStart >= 0) {
+                separator = codeStart + sqlCode.length();
+                break;
+            }
+        }
+        if (separator < 0 || separator == raw.length() - 1) {
+            return null;
+        }
+        String value = raw.substring(separator + 1).trim();
+        int lineBreak = Math.min(indexOrLength(value, '\r'), indexOrLength(value, '\n'));
+        value = value.substring(0, lineBreak).trim();
+        return value.isEmpty() ? null : value;
+    }
+
+    private int indexOrLength(String value, char character) {
+        int index = value.indexOf(character);
+        return index < 0 ? value.length() : index;
     }
 }
