@@ -17,6 +17,7 @@ public class TicketResponse {
     private String maTuyen;
     private String tenTuyen;
     private Integer soGhe;
+    private Integer lanBan;
     private BigDecimal giaVe;
     private LocalDateTime ngayBan;
     private String trangThai;

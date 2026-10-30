@@ -463,6 +463,20 @@ BEGIN
 END;
 GO
 
+CREATE OR ALTER PROCEDURE dbo.sp_LayDanhSachVeTheoChuyen @MaChuyen CHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT v.MaVe,v.SoGhe,v.LanBan,hk.HoTen,hk.SoDienThoai,v.GiaVe,v.NgayBan,v.TrangThai,
+           v.MaChuyen,c.MaTuyen,td.DiemDau+N' - '+td.DiemCuoi TenTuyen
+    FROM dbo.Ve v JOIN dbo.HanhKhach hk ON hk.MaHK=v.MaHK
+    JOIN dbo.ChuyenXe c ON c.MaChuyen=v.MaChuyen
+    JOIN dbo.TuyenDuong td ON td.MaTuyen=c.MaTuyen
+    WHERE v.MaChuyen=@MaChuyen
+    ORDER BY v.SoGhe,v.LanBan DESC;
+END;
+GO
+
 /* CONTRACT (nguon su that cho Pha 2)
 fn_LoaiNgay(@Ngay DATE) -> VARCHAR(10).
 sp_KiemTraXeDuDieuKien(@MaXe CHAR(5), @NgayKhoiHanh DATE) -> no result set (stub neu C chua tao).
@@ -476,4 +490,5 @@ sp_LayChiTietChuyen(@MaChuyen CHAR(10)) -> MaChuyen,MaTuyen,TenTuyen,DoDaiKm,MaX
 sp_XemTruocChuyen(@MaTuyen CHAR(3),@GioKhoiHanh DATETIME,@MaTXLai CHAR(6)=NULL,@MaTXPhu CHAR(6)=NULL) -> MaTuyen,MaLoaiNgay,GiaVe,GioDenGoiY,ThuLaoLai,ThuLaoPhu.
 sp_LaySoDoGhe(@MaChuyen CHAR(10)) -> MaChuyen,MaTuyen,TenTuyen,MaXe,BienSo,GioKhoiHanhDK,MaLoaiNgay,GiaVe,SoGhe,CoTheBan,MaVe,DaBan.
 sp_TraCuuVeTheoSDT(@SoDienThoai VARCHAR(15)) -> MaVe,HoTen,SoDienThoai,MaChuyen,MaTuyen,TenTuyen,SoGhe,GiaVe,NgayBan,TrangThai.
+sp_LayDanhSachVeTheoChuyen(@MaChuyen CHAR(10)) -> MaVe,SoGhe,LanBan,HoTen,SoDienThoai,GiaVe,NgayBan,TrangThai,MaChuyen,MaTuyen,TenTuyen; 0 rows if trip has no tickets or does not exist (Java calls sp_LayChiTietChuyen first to distinguish).
 */

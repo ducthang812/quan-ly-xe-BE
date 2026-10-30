@@ -46,6 +46,13 @@ public class TicketService {
         return repository.findByPhone(soDienThoai);
     }
 
+    public List<TicketResponse> findByTrip(String maChuyen) {
+        if (!repository.tripExists(maChuyen)) {
+            throw new ResourceNotFoundException("ChuyenXe", maChuyen);
+        }
+        return repository.findByTrip(maChuyen);
+    }
+
     private void validatePhone(String soDienThoai) {
         if (soDienThoai == null || !soDienThoai.matches(Constant.VanHanh.REGEX_SO_DIEN_THOAI)) {
             throw new AppException(ErrorCode.E23);

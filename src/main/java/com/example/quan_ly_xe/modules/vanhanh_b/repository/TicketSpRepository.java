@@ -45,6 +45,25 @@ public class TicketSpRepository {
                 }, soDienThoai);
     }
 
+    public boolean tripExists(String maChuyen) {
+        return !jdbcTemplate.query(call(Constant.VanHanh.SP_LAY_CHI_TIET_CHUYEN, 1),
+                (rs, rowNum) -> rs.getString("MaChuyen"), maChuyen).isEmpty();
+    }
+
+    public List<TicketResponse> findByTrip(String maChuyen) {
+        return jdbcTemplate.query(call(Constant.VanHanh.SP_LAY_DANH_SACH_VE_THEO_CHUYEN, 1),
+                (rs, rowNum) -> {
+                    Timestamp ngayBan = rs.getTimestamp("NgayBan");
+                    return TicketResponse.builder().maVe(rs.getString("MaVe"))
+                            .soGhe(rs.getInt("SoGhe")).lanBan(rs.getInt("LanBan"))
+                            .hoTen(rs.getString("HoTen")).soDienThoai(rs.getString("SoDienThoai"))
+                            .giaVe(rs.getBigDecimal("GiaVe"))
+                            .ngayBan(ngayBan == null ? null : ngayBan.toLocalDateTime())
+                            .trangThai(rs.getString("TrangThai")).maChuyen(rs.getString("MaChuyen"))
+                            .maTuyen(rs.getString("MaTuyen")).tenTuyen(rs.getString("TenTuyen")).build();
+                }, maChuyen);
+    }
+
     private static String call(String procedure, int parameters) {
         return "{call " + procedure + "(" + String.join(",", java.util.Collections.nCopies(parameters, "?")) + ")}";
     }
