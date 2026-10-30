@@ -238,9 +238,13 @@ INSERT INTO TuyenDuong VALUES
 
 INSERT INTO BangGiaVe VALUES 
 ('T01', 'THUONG', 400000), 
+('T01', 'CUOITUAN', 440000), 
 ('T01', 'MUADL', 460000), 
+('T01', 'LETET', 520000), 
 ('T02', 'THUONG', 250000), 
-('T02', 'MUADL', 287500);
+('T02', 'CUOITUAN', 275000), 
+('T02', 'MUADL', 287500), 
+('T02', 'LETET', 325000);
 
 INSERT INTO ChiNhanh (MaCN, TenCN, DiaChi) VALUES 
 ('CN01', N'Hà Nội', N'Bến Mỹ Đình'), 
@@ -254,11 +258,35 @@ INSERT INTO NhanVien VALUES
 UPDATE ChiNhanh SET MaTruongCN = 'NV_HN01' WHERE MaCN = 'CN01';
 
 INSERT INTO Xe VALUES 
-('XE001', '29B-123.45', 'LX45', 'CN01', 2022, '2025-01-01', 'HoatDong');
+('XE001', '29B-123.45', 'LX45', 'CN01', 2022, '2025-01-01', 'HoatDong'),
+('XE002', '29B-234.56', 'LX29', 'CN01', 2023, '2025-01-01', 'HoatDong'),
+('XE003', '29B-345.67', 'LX16', 'CN01', 2023, '2025-01-01', 'HoatDong'),
+('XE004', '29B-456.78', 'LX09', 'CN01', 2024, '2025-01-01', 'HoatDong'),
+('XE005', '29B-567.89', 'LX45', 'CN01', 2022, '2025-01-01', 'HoatDong');
+
+INSERT INTO DangKiem VALUES 
+('XE001', '2025-01-01', '2026-01-01', 'Dat', 350000),
+('XE002', '2025-01-01', '2026-01-01', 'Dat', 350000),
+('XE003', '2025-01-01', '2026-01-01', 'Dat', 350000),
+('XE004', '2025-01-01', '2026-01-01', 'Dat', 350000),
+('XE005', '2025-01-01', '2026-01-01', 'Dat', 350000);
+
+INSERT INTO BaoDuong VALUES 
+('XE001', '2024-01-01', N'Bảo dưỡng tổng thể', 10000000);
 
 INSERT INTO TaiXe VALUES 
 ('TX0001', N'Nguyễn', N'Tài', '1985-05-10', '001085000001', 'GPLX001', 'E', N'Số 1', N'Mỹ Đình', N'Hà Nội', '2023-01-01', 'DangLam', 'CN01'), 
-('TX0002', N'Lê', N'Phụ', '1995-08-20', '001095000002', 'GPLX002', 'D', N'Số 2', N'Cầu Giấy', N'Hà Nội', '2024-01-01', 'DangLam', 'CN01');
+('TX0002', N'Lê', N'Phụ', '1995-08-20', '001095000002', 'GPLX002', 'D', N'Số 2', N'Cầu Giấy', N'Hà Nội', '2024-01-01', 'DangLam', 'CN01'),
+('TX0003', N'Trần', N'Bình', '1988-03-15', '001088000003', 'GPLX003', 'E', N'Số 15', N'Kim Mã', N'Hà Nội', '2023-05-10', 'DangLam', 'CN01'),
+('TX0004', N'Phạm', N'Hùng', '1990-11-25', '001090000004', 'GPLX004', 'E', N'Số 28', N'Đội Cấn', N'Hà Nội', '2023-09-01', 'DangLam', 'CN01'),
+('TX0005', N'Hoàng', N'Tuấn', '1993-07-12', '001093000005', 'GPLX005', 'D', N'Số 45', N'Xuân Thủy', N'Hà Nội', '2024-03-15', 'DangLam', 'CN01');
+
+INSERT INTO TaiXe_SDT VALUES 
+('TX0001', '0905111001'),
+('TX0002', '0905111002'),
+('TX0003', '0905111003'),
+('TX0004', '0905111004'),
+('TX0005', '0905111005');
 GO
 
 

@@ -104,9 +104,14 @@ public class BaoCaoSpRepository {
 
     /**
      * Lấy danh sách các tháng có chuyến (MH05 Combobox Tháng).
+     * Mặc định đầu tiên lúc nào cũng là tháng hiện tại xong mới đến các tháng có dữ liệu.
      */
+    public List<String> layDanhSachThangCoChuyen(String thangHienTai) {
+        return jdbcTemplate.query("{call sp_LayDanhSachThangCoChuyen(?)}", (rs, rowNum) -> rs.getString("Thang"), thangHienTai);
+    }
+
     public List<String> layDanhSachThangCoChuyen() {
-        return jdbcTemplate.query("{call sp_LayDanhSachThangCoChuyen}", (rs, rowNum) -> rs.getString("Thang"));
+        return layDanhSachThangCoChuyen(null);
     }
 
     /**

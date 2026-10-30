@@ -38,10 +38,12 @@ public class BaoCaoController {
 
     /**
      * Danh sách các tháng có chuyến (MH05 Combobox Tháng).
+     * Mặc định đầu tiên lúc nào cũng là tháng hiện tại xong mới đến các tháng có dữ liệu.
      */
     @GetMapping("/thang-co-chuyen")
-    public ApiResponse<List<String>> layDanhSachThangCoChuyen() {
-        return ApiResponse.ok(baoCaoService.layDanhSachThangCoChuyen());
+    public ApiResponse<List<String>> layDanhSachThangCoChuyen(
+            @RequestParam(required = false) String thangHienTai) {
+        return ApiResponse.ok(baoCaoService.layDanhSachThangCoChuyen(thangHienTai));
     }
 
     /**

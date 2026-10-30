@@ -459,9 +459,19 @@ BEGIN
     ELSE IF DB_NAME() LIKE '%HCM%' SET @LocalBranch = 'CN03';
     ELSE SET @LocalBranch = 'CN01';
 
-    -- Nếu không chỉ định chi nhánh, mặc định lấy chi nhánh hiện tại
-    IF (@MaCN IS NULL OR LTRIM(RTRIM(@MaCN)) = '')
+    -- Chuẩn hóa mã chi nhánh: Nếu không chỉ định hoặc là ALL, mặc định lấy chi nhánh hiện tại
+    IF (@MaCN IS NOT NULL)
+    BEGIN
+        SET @MaCN = UPPER(LTRIM(RTRIM(@MaCN)));
+        IF @MaCN = 'HN' SET @MaCN = 'CN01';
+        ELSE IF @MaCN = 'DN' SET @MaCN = 'CN02';
+        ELSE IF @MaCN = 'HCM' SET @MaCN = 'CN03';
+        ELSE IF @MaCN = 'ALL' OR @MaCN = 'TAT_CA' OR @MaCN = '' SET @MaCN = @LocalBranch;
+    END
+    ELSE
+    BEGIN
         SET @MaCN = @LocalBranch;
+    END;
 
     -- 1. Nếu cần lấy Hà Nội (CN01) nhưng đây không phải DB Hà Nội
     IF (@MaCN = 'CN01' AND @LocalBranch <> 'CN01')
@@ -493,82 +503,7 @@ BEGIN
         RETURN;
     END;
 
-    -- 4. Nếu xem tất cả các chi nhánh (ALL)
-    IF (@MaCN = 'ALL')
-    BEGIN
-        CREATE TABLE #AllTaiXe (
-            MaTX VARCHAR(10),
-            HoDem NVARCHAR(50),
-            Ten NVARCHAR(20),
-            HoTen NVARCHAR(71),
-            NgaySinh DATE,
-            NamSinh INT,
-            CCCD VARCHAR(12),
-            SoGPLX VARCHAR(20),
-            HangGPLX VARCHAR(5),
-            SoNha NVARCHAR(100),
-            Phuong NVARCHAR(50),
-            Tinh NVARCHAR(50),
-            NgayVaoLam DATE,
-            TrangThai VARCHAR(20),
-            MaCN VARCHAR(10),
-            TenCN NVARCHAR(100),
-            SoDienThoai VARCHAR(15),
-            SoChuyen INT,
-            ThuLaoThang FLOAT
-        );
-
-        INSERT INTO #AllTaiXe
-        SELECT 
-            tx.MaTX, 
-            tx.HoDem, 
-            tx.Ten, 
-            (tx.HoDem + ' ' + tx.Ten) AS HoTen,
-            tx.NgaySinh,
-            YEAR(tx.NgaySinh) AS NamSinh,
-            tx.CCCD, 
-            tx.SoGPLX, 
-            tx.HangGPLX, 
-            tx.SoNha, 
-            tx.Phuong, 
-            tx.Tinh, 
-            tx.NgayVaoLam, 
-            tx.TrangThai, 
-            tx.MaCN,
-            cn.TenCN,
-            (SELECT TOP 1 SoDienThoai FROM TaiXe_SDT WHERE MaTX = tx.MaTX) AS SoDienThoai,
-            ISNULL(chuyen.SoChuyen, 0) AS SoChuyen,
-            ISNULL(chuyen.ThuLaoThang, 0) AS ThuLaoThang
-        FROM TaiXe tx
-        JOIN ChiNhanh cn ON tx.MaCN = cn.MaCN
-        LEFT JOIN (
-            SELECT pc.MaTX,
-                   COUNT(cx.MaChuyen) AS SoChuyen,
-                   SUM(pc.ThuLao) AS ThuLaoThang
-            FROM PhanCong pc
-            JOIN ChuyenXe cx ON pc.MaChuyen = cx.MaChuyen
-            WHERE cx.TrangThai = 'HoanThanh'
-              AND FORMAT(cx.GioKhoiHanhDK, 'yyyy-MM') = @Thang
-            GROUP BY pc.MaTX
-        ) chuyen ON tx.MaTX = chuyen.MaTX
-        WHERE (@TrangThai IS NULL OR tx.TrangThai = @TrangThai);
-
-        IF (@LocalBranch <> 'CN01')
-            EXEC sp_executesql N'INSERT INTO #AllTaiXe EXEC SERVER_HN.QLXeKhach_HN.dbo.sp_LayDanhSachTaiXe @MaCN = ''CN01'', @TrangThai = @pTrangThai, @Thang = @pThang;',
-                N'@pTrangThai VARCHAR(20), @pThang VARCHAR(7)', @pTrangThai = @TrangThai, @pThang = @Thang;
-        IF (@LocalBranch <> 'CN02')
-            EXEC sp_executesql N'INSERT INTO #AllTaiXe EXEC SERVER_DN.QLXeKhach_DN.dbo.sp_LayDanhSachTaiXe @MaCN = ''CN02'', @TrangThai = @pTrangThai, @Thang = @pThang;',
-                N'@pTrangThai VARCHAR(20), @pThang VARCHAR(7)', @pTrangThai = @TrangThai, @pThang = @Thang;
-        IF (@LocalBranch <> 'CN03')
-            EXEC sp_executesql N'INSERT INTO #AllTaiXe EXEC SERVER_HCM.QLXeKhach_HCM.dbo.sp_LayDanhSachTaiXe @MaCN = ''CN03'', @TrangThai = @pTrangThai, @Thang = @pThang;',
-                N'@pTrangThai VARCHAR(20), @pThang VARCHAR(7)', @pTrangThai = @TrangThai, @pThang = @Thang;
-
-        SELECT * FROM #AllTaiXe ORDER BY MaTX ASC;
-        DROP TABLE #AllTaiXe;
-        RETURN;
-    END;
-
-    -- 5. Truy vấn dữ liệu cục bộ của chi nhánh hiện tại
+    -- 4. Truy vấn dữ liệu cục bộ của chi nhánh hiện tại
     SELECT 
         tx.MaTX, 
         tx.HoDem, 
