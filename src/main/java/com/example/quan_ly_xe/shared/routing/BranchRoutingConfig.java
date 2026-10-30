@@ -58,6 +58,7 @@ public class BranchRoutingConfig {
         ds.setMaximumPoolSize(10);
         ds.setMinimumIdle(2);
         ds.setConnectionTimeout(5000);
+        ds.setInitializationFailTimeout(-1);
         return ds;
     }
 
@@ -65,6 +66,10 @@ public class BranchRoutingConfig {
     @Primary
     public DataSource dataSource() {
         log.info("Khởi tạo BranchRoutingDataSource cho 3 chi nhánh (HN: CN01, DN: CN02, HCM: CN03)");
+
+        log.warn("CN01 uses DB_HN_USERNAME/DB_HN_PASSWORD; database errors will be reported when handling a request");
+        log.warn("CN02 uses DB_DN_USERNAME/DB_DN_PASSWORD; database errors will be reported when handling a request");
+        log.warn("CN03 uses DB_HCM_USERNAME/DB_HCM_PASSWORD; database errors will be reported when handling a request");
 
         DataSource hnDataSource = createDataSource(hnUrl, hnUser, hnPass, "HikariPool-HN");
         DataSource dnDataSource = createDataSource(dnUrl, dnUser, dnPass, "HikariPool-DN");

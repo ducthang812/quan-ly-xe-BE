@@ -14,6 +14,33 @@ public final class Constant {
     private Constant() {
     }
 
+    /** Hằng số của module vận hành chuyến xe và bán vé. */
+    public static final class VanHanh {
+        private VanHanh() {
+        }
+
+        public static final String TRANG_THAI_KE_HOACH = "KeHoach";
+        public static final String TRANG_THAI_DANG_CHAY = "DangChay";
+        public static final String TRANG_THAI_HOAN_THANH = "HoanThanh";
+        public static final String TRANG_THAI_HUY = "Huy";
+        public static final String TRANG_THAI_VE_DA_BAN = "DaBan";
+        public static final String TRANG_THAI_VE_DA_HUY = "DaHuy";
+        public static final String VAI_TRO_LAI = "LAI";
+        public static final String VAI_TRO_PHU = "PHU";
+        public static final String REGEX_SO_DIEN_THOAI = "^0\\d{9}$";
+
+        public static final String SP_TAO_CHUYEN = "sp_TaoChuyenVaPhanCong";
+        public static final String SP_KET_THUC_CHUYEN = "sp_KetThucChuyen";
+        public static final String SP_BAN_VE = "sp_BanVe";
+        public static final String SP_HUY_CHUYEN = "sp_HuyChuyen";
+        public static final String SP_HUY_VE = "sp_HuyVe";
+        public static final String SP_LAY_DANH_SACH_CHUYEN = "sp_LayDanhSachChuyen";
+        public static final String SP_LAY_CHI_TIET_CHUYEN = "sp_LayChiTietChuyen";
+        public static final String SP_XEM_TRUOC_CHUYEN = "sp_XemTruocChuyen";
+        public static final String SP_LAY_SO_DO_GHE = "sp_LaySoDoGhe";
+        public static final String SP_TRA_CUU_VE_THEO_SDT = "sp_TraCuuVeTheoSDT";
+    }
+
     /** Đường dẫn REST. */
     public static final class Api {
         private Api() {
@@ -93,6 +120,7 @@ public final class Constant {
         public static final String N50102 = "50102"; // chuyến không mở bán (TR01)
         public static final String N50103 = "50103"; // vượt số chỗ (TR01)
         public static final String N50201 = "50201"; // tuyến chưa có giá (TR02)
+        public static final String N50301 = "50301"; // tài xế không đang làm (TR03)
         public static final String N50302 = "50302"; // tài xế trùng giờ (TR03)
         public static final String N50401 = "50401"; // xe không hoạt động (TR04)
         public static final String N50402 = "50402"; // xe trùng giờ (TR04)
@@ -103,6 +131,9 @@ public final class Constant {
         public static final String N51002 = "51002"; // chuyến không mở bán (sp_BanVe)
         public static final String N51003 = "51003"; // ghế đã có người (sp_BanVe)
         public static final String N53001 = "53001"; // lái trùng phụ (sp_TaoChuyenVaPhanCong)
+        public static final String N54001 = "54001"; // chuyến không thể hủy
+        public static final String N54002 = "54002"; // vé đã hủy trước đó
+        public static final String N54003 = "54003"; // hết số thứ tự chuyến trong ngày
         public static final String N55001 = "55001"; // ngày bảo dưỡng ở tương lai
         public static final String N55002 = "55002"; // ngày bảo dưỡng trước lần gần nhất
         public static final String N55003 = "55003"; // trùng ngày bảo dưỡng (sp_GhiNhanBaoDuong)
@@ -211,6 +242,14 @@ public final class Constant {
         public static final String E31_EN = "Cost must be zero or greater.";
         public static final String E32_VI = "Không kết nối được cơ sở dữ liệu. Vui lòng thử lại.";
         public static final String E32_EN = "Cannot connect to the database. Please try again.";
+        public static final String DRIVER_NOT_ACTIVE_VI = "Tài xế {0} không ở trạng thái Đang làm.";
+        public static final String DRIVER_NOT_ACTIVE_EN = "Driver {0} is not active.";
+        public static final String TRIP_NOT_CANCELLABLE_VI = "Chỉ hủy được chuyến đang Kế hoạch.";
+        public static final String TRIP_NOT_CANCELLABLE_EN = "Only a planned trip can be cancelled.";
+        public static final String TICKET_ALREADY_CANCELLED_VI = "Vé đã được hủy trước đó.";
+        public static final String TICKET_ALREADY_CANCELLED_EN = "The ticket has already been cancelled.";
+        public static final String TRIP_CODE_EXHAUSTED_VI = "Đã hết số thứ tự chuyến trong ngày.";
+        public static final String TRIP_CODE_EXHAUSTED_EN = "The daily trip-code sequence has been exhausted.";
         public static final String NOT_FOUND_VI = "Không tìm thấy {0}.";
         public static final String NOT_FOUND_EN = "{0} not found.";
         public static final String FORBIDDEN_VI = "Không có quyền thực hiện thao tác: {0}";
