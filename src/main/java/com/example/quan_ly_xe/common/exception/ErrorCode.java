@@ -32,10 +32,10 @@ public enum ErrorCode {
     E04(HttpStatus.UNPROCESSABLE_CONTENT, ErrorMessage.E04_VI, ErrorMessage.E04_EN),
     E05(HttpStatus.UNPROCESSABLE_CONTENT, ErrorMessage.E05_VI, ErrorMessage.E05_EN),
     E06(HttpStatus.UNPROCESSABLE_CONTENT, ErrorMessage.E06_VI, ErrorMessage.E06_EN, ThrowCode.N57001),
-    E07(HttpStatus.CONFLICT, ErrorMessage.E07_VI, ErrorMessage.E07_EN),
-    E08(HttpStatus.UNPROCESSABLE_CONTENT, ErrorMessage.E08_VI, ErrorMessage.E08_EN),
+    E07(HttpStatus.CONFLICT, ErrorMessage.E07_VI, ErrorMessage.E07_EN, ThrowCode.N58002),
+    E08(HttpStatus.UNPROCESSABLE_CONTENT, ErrorMessage.E08_VI, ErrorMessage.E08_EN, ThrowCode.N58003),
     E09(HttpStatus.UNPROCESSABLE_CONTENT, ErrorMessage.E09_VI, ErrorMessage.E09_EN, ThrowCode.N58001, ThrowCode.N59001),
-    E10(HttpStatus.CONFLICT, ErrorMessage.E10_VI, ErrorMessage.E10_EN),
+    E10(HttpStatus.CONFLICT, ErrorMessage.E10_VI, ErrorMessage.E10_EN, ThrowCode.N58004),
     E11(HttpStatus.BAD_REQUEST, ErrorMessage.E11_VI, ErrorMessage.E11_EN),
     E12(HttpStatus.CONFLICT, ErrorMessage.E12_VI, ErrorMessage.E12_EN),
     E13(HttpStatus.UNPROCESSABLE_CONTENT, ErrorMessage.E13_VI, ErrorMessage.E13_EN),
@@ -62,8 +62,8 @@ public enum ErrorCode {
     // ── Bảo dưỡng / đăng kiểm (sp_GhiNhanBaoDuong) ─────────────────────────────
     E28(HttpStatus.UNPROCESSABLE_CONTENT, ErrorMessage.E28_VI, ErrorMessage.E28_EN, ThrowCode.N55001),
     E29(HttpStatus.UNPROCESSABLE_CONTENT, ErrorMessage.E29_VI, ErrorMessage.E29_EN, ThrowCode.N55002),
-    E30(HttpStatus.CONFLICT, ErrorMessage.E30_VI, ErrorMessage.E30_EN),
-    E31(HttpStatus.UNPROCESSABLE_CONTENT, ErrorMessage.E31_VI, ErrorMessage.E31_EN),
+    E30(HttpStatus.CONFLICT, ErrorMessage.E30_VI, ErrorMessage.E30_EN, ThrowCode.N55003),
+    E31(HttpStatus.UNPROCESSABLE_CONTENT, ErrorMessage.E31_VI, ErrorMessage.E31_EN, ThrowCode.N55004, ThrowCode.N59002),
 
     // ── Hạ tầng ────────────────────────────────────────────────────────────────
     E32(HttpStatus.SERVICE_UNAVAILABLE, ErrorMessage.E32_VI, ErrorMessage.E32_EN),
