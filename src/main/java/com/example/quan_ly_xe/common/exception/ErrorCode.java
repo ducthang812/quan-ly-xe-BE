@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 /**
  * Danh mục thông báo lỗi E01–E32 theo mục 10 của SRS.
@@ -139,7 +140,8 @@ public enum ErrorCode {
             return Optional.empty();
         }
         for (Map.Entry<String, ErrorCode> e : BY_SQL_CODE.entrySet()) {
-            if (rawMessage.contains(e.getKey())) {
+            if (Pattern.compile("(?<!\\d)" + Pattern.quote(e.getKey()) + "(?!\\d)")
+                    .matcher(rawMessage).find()) {
                 return Optional.of(e.getValue());
             }
         }

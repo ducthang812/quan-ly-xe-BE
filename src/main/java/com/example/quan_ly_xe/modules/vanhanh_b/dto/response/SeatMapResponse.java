@@ -1,5 +1,6 @@
 package com.example.quan_ly_xe.modules.vanhanh_b.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,7 +17,7 @@ public class SeatMapResponse {
     private String tenTuyen;
     private String maXe;
     private String bienSo;
-    private LocalDateTime gioKhoiHanhDK;
+    @JsonProperty("gioKhoiHanhDK") private LocalDateTime gioKhoiHanhDK;
     private String maLoaiNgay;
     private BigDecimal giaVe;
     private List<SeatItem> danhSachGhe;

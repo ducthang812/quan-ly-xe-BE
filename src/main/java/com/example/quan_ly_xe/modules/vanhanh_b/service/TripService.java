@@ -40,9 +40,13 @@ public class TripService {
 
     @Transactional
     public String create(CreateTripRequest request) {
-        if (request.getMaLai() != null && request.getMaLai().equals(request.getMaPhu())) {
+        String maLai = trimToNull(request.getMaLai());
+        String maPhu = trimToNull(request.getMaPhu());
+        if (maLai != null && maLai.equals(maPhu)) {
             throw new AppException(ErrorCode.E14);
         }
+        request.setMaLai(maLai);
+        request.setMaPhu(maPhu);
         return repository.create(request)
                 .orElseThrow(() -> new ResourceNotFoundException("ChuyenXe"));
     }
@@ -62,8 +66,18 @@ public class TripService {
                 || request.getChiPhiVanHanh().compareTo(BigDecimal.ZERO) < 0) {
             throw new AppException(ErrorCode.E31);
         }
+        if (request.getGioKhoiHanhTT() != null && request.getGioDenTT() != null
+                && !request.getGioDenTT().isAfter(request.getGioKhoiHanhTT())) {
+            throw new AppException(ErrorCode.E21);
+        }
         return repository.finish(maChuyen, request)
                 .orElseThrow(() -> new ResourceNotFoundException("ChuyenXe", maChuyen));
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     public SeatMapResponse seatMap(String maChuyen) {

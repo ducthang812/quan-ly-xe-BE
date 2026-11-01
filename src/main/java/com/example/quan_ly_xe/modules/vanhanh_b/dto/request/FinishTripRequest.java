@@ -1,6 +1,8 @@
 package com.example.quan_ly_xe.modules.vanhanh_b.dto.request;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,6 +15,6 @@ import java.time.LocalDateTime;
 public class FinishTripRequest {
     private LocalDateTime gioKhoiHanhTT;
     private LocalDateTime gioDenTT;
-    @NotNull private Integer kmThucTe;
-    @NotNull private BigDecimal chiPhiVanHanh;
+    @NotNull @Positive private Integer kmThucTe;
+    @NotNull @PositiveOrZero private BigDecimal chiPhiVanHanh;
 }
