@@ -137,9 +137,15 @@ public final class Constant {
         public static final String N54003 = "54003"; // hết số thứ tự chuyến trong ngày
         public static final String N55001 = "55001"; // ngày bảo dưỡng ở tương lai
         public static final String N55002 = "55002"; // ngày bảo dưỡng trước lần gần nhất
+        public static final String N55003 = "55003"; // trùng ngày bảo dưỡng (sp_GhiNhanBaoDuong)
+        public static final String N55004 = "55004"; // chi phí bảo dưỡng âm (sp_GhiNhanBaoDuong)
         public static final String N57001 = "57001"; // thiếu giá khi thêm tuyến
         public static final String N58001 = "58001"; // ngày đăng kiểm ở tương lai (thêm xe)
+        public static final String N58002 = "58002"; // biển số trùng toàn chuỗi (sp_ThemXeVaDangKiem)
+        public static final String N58003 = "58003"; // năm sản xuất không hợp lệ (sp_ThemXeVaDangKiem)
+        public static final String N58004 = "58004"; // xóa xe đã có chuyến (sp_XoaXe)
         public static final String N59001 = "59001"; // ngày đăng kiểm ở tương lai (gia hạn)
+        public static final String N59002 = "59002"; // chi phí đăng kiểm âm (sp_GhiNhanDangKiem)
     }
 
     /** Tên ràng buộc CK/UQ/FK/PK để ánh xạ lỗi khai báo về mã nghiệp vụ. */
