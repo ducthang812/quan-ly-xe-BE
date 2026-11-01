@@ -281,7 +281,8 @@ AS
 BEGIN
     SET NOCOUNT ON; SET XACT_ABORT ON;
     BEGIN TRY
-        IF @MaLai = @MaPhu THROW 53001, N'53001', 1;
+        IF RTRIM(@MaLai) = RTRIM(@MaPhu) THROW 53001, N'53001', 1;
+        IF @GioDen <= @GioKhoiHanh THROW 50601, N'50601', 1;
         BEGIN TRANSACTION;
         IF @MaChuyen IS NULL
         BEGIN
@@ -317,6 +318,10 @@ BEGIN
         BEGIN ROLLBACK TRANSACTION; RETURN; END;
         IF NOT EXISTS (SELECT 1 FROM dbo.ChuyenXe WHERE MaChuyen = @MaChuyen AND TrangThai IN ('KeHoach','DangChay'))
             THROW 51002, N'51002', 1;
+        IF @KmThucTe IS NULL OR @KmThucTe <= 0 OR @ChiPhiVanHanh IS NULL OR @ChiPhiVanHanh < 0
+            THROW 50601, N'50601', 1;
+        IF @GioKhoiHanhTT IS NOT NULL AND @GioDenTT IS NOT NULL AND @GioDenTT <= @GioKhoiHanhTT
+            THROW 50601, N'50601', 1;
         UPDATE dbo.ChuyenXe
            SET GioKhoiHanhTT = COALESCE(@GioKhoiHanhTT, GioKhoiHanhDK),
                GioDenTT = COALESCE(@GioDenTT, GioDenDK), KmThucTe = @KmThucTe,
@@ -391,13 +396,14 @@ BEGIN
     SET NOCOUNT ON;
     SELECT c.MaChuyen, c.MaTuyen, td.DiemDau + N' - ' + td.DiemCuoi AS TenTuyen, td.DoDaiKm,
            c.MaXe, x.BienSo, c.GioKhoiHanhDK, c.GioDenDK, c.GioKhoiHanhTT, c.GioDenTT,
-           lai.MaTX AS MaTXLai, lai.HoTen AS TenTXLai, phu.MaTX AS MaTXPhu, phu.HoTen AS TenTXPhu,
+           lai.MaTX AS MaTXLai, lai.HoTen AS TenTXLai, lai.ThuLao AS ThuLaoLai,
+           phu.MaTX AS MaTXPhu, phu.HoTen AS TenTXPhu, phu.ThuLao AS ThuLaoPhu,
            (SELECT COUNT(*) FROM dbo.Ve v WHERE v.MaChuyen=c.MaChuyen AND v.TrangThai='DaBan') AS DaBan,
            lx.SoGhe - 2 AS SoCho, c.TrangThai
     FROM dbo.ChuyenXe c JOIN dbo.TuyenDuong td ON td.MaTuyen=c.MaTuyen JOIN dbo.Xe x ON x.MaXe=c.MaXe
     JOIN dbo.LoaiXe lx ON lx.MaLoaiXe=x.MaLoaiXe
-    OUTER APPLY (SELECT p.MaTX, tx.HoDem+N' '+tx.Ten HoTen FROM dbo.PhanCong p JOIN dbo.TaiXe tx ON tx.MaTX=p.MaTX WHERE p.MaChuyen=c.MaChuyen AND p.VaiTro='LAI') lai
-    OUTER APPLY (SELECT p.MaTX, tx.HoDem+N' '+tx.Ten HoTen FROM dbo.PhanCong p JOIN dbo.TaiXe tx ON tx.MaTX=p.MaTX WHERE p.MaChuyen=c.MaChuyen AND p.VaiTro='PHU') phu
+    OUTER APPLY (SELECT p.MaTX, tx.HoDem+N' '+tx.Ten HoTen, p.ThuLao FROM dbo.PhanCong p JOIN dbo.TaiXe tx ON tx.MaTX=p.MaTX WHERE p.MaChuyen=c.MaChuyen AND p.VaiTro='LAI') lai
+    OUTER APPLY (SELECT p.MaTX, tx.HoDem+N' '+tx.Ten HoTen, p.ThuLao FROM dbo.PhanCong p JOIN dbo.TaiXe tx ON tx.MaTX=p.MaTX WHERE p.MaChuyen=c.MaChuyen AND p.VaiTro='PHU') phu
     WHERE (@TrangThai IS NULL OR c.TrangThai=@TrangThai) AND (@MaCN IS NULL OR x.MaCN=@MaCN)
       AND (@TuNgay IS NULL OR CAST(c.GioKhoiHanhDK AS DATE)>=@TuNgay) AND (@DenNgay IS NULL OR CAST(c.GioKhoiHanhDK AS DATE)<=@DenNgay)
     ORDER BY c.GioKhoiHanhDK DESC;
@@ -463,6 +469,20 @@ BEGIN
 END;
 GO
 
+CREATE OR ALTER PROCEDURE dbo.sp_LayDanhSachVeTheoChuyen @MaChuyen CHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT v.MaVe,v.SoGhe,v.LanBan,hk.HoTen,hk.SoDienThoai,v.GiaVe,v.NgayBan,v.TrangThai,
+           v.MaChuyen,c.MaTuyen,td.DiemDau+N' - '+td.DiemCuoi TenTuyen
+    FROM dbo.Ve v JOIN dbo.HanhKhach hk ON hk.MaHK=v.MaHK
+    JOIN dbo.ChuyenXe c ON c.MaChuyen=v.MaChuyen
+    JOIN dbo.TuyenDuong td ON td.MaTuyen=c.MaTuyen
+    WHERE v.MaChuyen=@MaChuyen
+    ORDER BY v.SoGhe,v.LanBan DESC;
+END;
+GO
+
 /* CONTRACT (nguon su that cho Pha 2)
 fn_LoaiNgay(@Ngay DATE) -> VARCHAR(10).
 sp_KiemTraXeDuDieuKien(@MaXe CHAR(5), @NgayKhoiHanh DATE) -> no result set (stub neu C chua tao).
@@ -476,4 +496,5 @@ sp_LayChiTietChuyen(@MaChuyen CHAR(10)) -> MaChuyen,MaTuyen,TenTuyen,DoDaiKm,MaX
 sp_XemTruocChuyen(@MaTuyen CHAR(3),@GioKhoiHanh DATETIME,@MaTXLai CHAR(6)=NULL,@MaTXPhu CHAR(6)=NULL) -> MaTuyen,MaLoaiNgay,GiaVe,GioDenGoiY,ThuLaoLai,ThuLaoPhu.
 sp_LaySoDoGhe(@MaChuyen CHAR(10)) -> MaChuyen,MaTuyen,TenTuyen,MaXe,BienSo,GioKhoiHanhDK,MaLoaiNgay,GiaVe,SoGhe,CoTheBan,MaVe,DaBan.
 sp_TraCuuVeTheoSDT(@SoDienThoai VARCHAR(15)) -> MaVe,HoTen,SoDienThoai,MaChuyen,MaTuyen,TenTuyen,SoGhe,GiaVe,NgayBan,TrangThai.
+sp_LayDanhSachVeTheoChuyen(@MaChuyen CHAR(10)) -> MaVe,SoGhe,LanBan,HoTen,SoDienThoai,GiaVe,NgayBan,TrangThai,MaChuyen,MaTuyen,TenTuyen; 0 rows if trip has no tickets or does not exist (Java calls sp_LayChiTietChuyen first to distinguish).
 */

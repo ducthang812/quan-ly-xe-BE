@@ -38,6 +38,7 @@ public final class Constant {
         public static final String SP_LAY_CHI_TIET_CHUYEN = "sp_LayChiTietChuyen";
         public static final String SP_XEM_TRUOC_CHUYEN = "sp_XemTruocChuyen";
         public static final String SP_LAY_SO_DO_GHE = "sp_LaySoDoGhe";
+        public static final String SP_LAY_DANH_SACH_VE_THEO_CHUYEN = "sp_LayDanhSachVeTheoChuyen";
         public static final String SP_TRA_CUU_VE_THEO_SDT = "sp_TraCuuVeTheoSDT";
     }
 
