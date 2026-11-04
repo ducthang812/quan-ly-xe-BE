@@ -1,0 +1,9 @@
+target/
+database/
+database.zip
+.git/
+.github/
+.idea/
+.vscode/
+*.iml
+quan_ly_xe_postman_collection.json

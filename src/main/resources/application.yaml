@@ -14,8 +14,12 @@ spring:
     hibernate:
       # Schema do mỗi người tự quản bằng migration (db/), KHÔNG để Hibernate tự tạo.
       ddl-auto: none
+    # Khai báo sẵn dialect để app vẫn khởi động khi SQL Server chưa sẵn sàng (lỗi DB chỉ báo khi xử lý request).
+    database-platform: org.hibernate.dialect.SQLServerDialect
     properties:
       hibernate:
+        boot:
+          allow_jdbc_metadata_access: false
         format_sql: true
         jdbc:
           time_zone: Asia/Ho_Chi_Minh

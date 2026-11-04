@@ -1,0 +1,63 @@
+# Mot file dung chung cho ca 3 site. Gia tri SITE, NET... lay tu file .env
+# (scripts/00-host-setup.sh tao .env tu env/<site>.env + env/secrets.env).
+name: pa1
+
+x-mssql: &mssql
+  image: mcr.microsoft.com/mssql/server:2019-latest
+  restart: unless-stopped
+  environment:
+    ACCEPT_EULA: "Y"
+    MSSQL_PID: Developer
+    MSSQL_SA_PASSWORD: ${SA_PASSWORD}
+    MSSQL_ENABLE_HADR: "1"
+    MSSQL_AGENT_ENABLED: "true"
+    MSSQL_MEMORY_LIMIT_MB: ${SQL_MEM_MB:-2048}
+    TZ: Asia/Ho_Chi_Minh
+  # Ten -> IP cua moi node va listener o ca 3 site (dung cho AG, replication, linked server)
+  extra_hosts:
+    - "sql-hn-1:10.10.1.11"
+    - "sql-hn-2:10.10.1.12"
+    - "lsn-hn:10.10.1.20"
+    - "sql-dn-1:10.10.2.11"
+    - "sql-dn-2:10.10.2.12"
+    - "lsn-dn:10.10.2.20"
+    - "sql-hcm-1:10.10.3.11"
+    - "sql-hcm-2:10.10.3.12"
+    - "lsn-hcm:10.10.3.20"
+
+services:
+  sql1:
+    <<: *mssql
+    container_name: sql-${SITE}-1
+    hostname: sql-${SITE}-1
+    ports:
+      - "${NET}.11:1433:1433"
+      - "${NET}.11:5022:5022"
+    volumes:
+      - sql1-data:/var/opt/mssql
+      - ./shared:/var/opt/mssql/shared
+
+  sql2:
+    <<: *mssql
+    container_name: sql-${SITE}-2
+    hostname: sql-${SITE}-2
+    ports:
+      - "${NET}.12:1433:1433"
+      - "${NET}.12:5022:5022"
+    volumes:
+      - sql2-data:/var/opt/mssql
+      - ./shared:/var/opt/mssql/shared
+
+  # "Listener" gia lap: HAProxy nghe o ${NET}.20:1433 va chuyen toi node dang la Primary.
+  # scripts/set-listener.sh doi dich khi failover.
+  lsn:
+    image: haproxy:lts-alpine
+    container_name: lsn-${SITE}
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./haproxy:/usr/local/etc/haproxy:ro
+
+volumes:
+  sql1-data:
+  sql2-data:

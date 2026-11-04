@@ -10,9 +10,9 @@ Dưới đây là thông số kết nối mặc định cho các container Docke
 
 | Nút / Chi nhánh | Tên Database | Cổng (Port Docker) | Tài khoản (User) | Mật khẩu (Password) | Server / Host |
 |-----------------|--------------|-------------------|------------------|---------------------|---------------|
-| **Trụ sở Hà Nội** (Node chính) | `QLXeKhach_HN` | `1433` | `sa` | `abc@123` | `localhost,1433` |
-| **Chi nhánh Đà Nẵng** | `QLXeKhach_DN` | `1434` | `sa` | `abc@123` | `localhost,1434` |
-| **Chi nhánh TP.HCM** | `QLXeKhach_HCM` | `1435` | `sa` | `abc@123` | `localhost,1435` |
+| **Trụ sở Hà Nội** (Node chính) | `QLXeKhach_HN` | `1433` | `sa` | `Abc@123456` | `localhost,1433` |
+| **Chi nhánh Đà Nẵng** | `QLXeKhach_DN` | `1434` | `sa` | `Abc@123456` | `localhost,1434` |
+| **Chi nhánh TP.HCM** | `QLXeKhach_HCM` | `1435` | `sa` | `Abc@123456` | `localhost,1435` |
 
 ---
 
@@ -34,16 +34,16 @@ Lệnh này sẽ khởi động 3 container:
 Sau khi các container đã khởi động hoàn tất (chờ khoảng 30-60 giây để SQL Server khởi tạo xong), bạn sử dụng các công cụ quản lý cơ sở dữ liệu như **SSMS (SQL Server Management Studio)**, **Azure Data Studio**, hoặc **DBeaver** để kết nối và chạy các file script trong thư mục `init/`:
 
 1. **Khởi tạo Database Hà Nội (`db_hn.sql`)**:
-   - Kết nối tới `localhost,1433` (User: `sa`, Pass: `abc@123`).
+   - Kết nối tới `localhost,1433` (User: `sa`, Pass: `Abc@123456`).
    - Mở và chạy toàn bộ nội dung file `database/init/db_hn.sql`. File này sẽ tạo database `QLXeKhach_HN`, tạo 19 bảng (bao gồm bảng danh mục dùng chung), insert dữ liệu gốc và cấu hình **Linked Server** trỏ sang Đà Nẵng (`SERVER_DN`) và TP.HCM (`SERVER_HCM`).
 
 2. **Khởi tạo Database Đà Nẵng (`db_dn.sql`)**:
-   - Kết nối tới `localhost,1434` (User: `sa`, Pass: `abc@123`).
-   - Mở và chạy toàn bộ nội dung file `database/init/db_dn.sql`. File này tạo database `QLXeKhach_DN`, 12 bảng giao dịch cục bộ, dữ liệu mẫu tại Đà Nẵng và cấu hình **Linked Server** trỏ về Hà Nội & TP.HCM.
+   - Kết nối tới `localhost,1434` (User: `sa`, Pass: `Abc@123456`).
+   - Mở và chạy toàn bộ nội dung file `database/init/db_dn.sql`. File này tạo database `QLXeKhach_DN`, 11 bảng giao dịch cục bộ, dữ liệu mẫu tại Đà Nẵng và cấu hình **Linked Server** trỏ về Hà Nội & TP.HCM.
 
 3. **Khởi tạo Database TP.HCM (`db_hcm.sql`)**:
-   - Kết nối tới `localhost,1435` (User: `sa`, Pass: `abc@123`).
-   - Mở và chạy toàn bộ nội dung file `database/init/db_hcm.sql`. File này tạo database `QLXeKhach_HCM`, 12 bảng giao dịch cục bộ, dữ liệu mẫu tại TP.HCM và cấu hình **Linked Server** trỏ về Hà Nội.
+   - Kết nối tới `localhost,1435` (User: `sa`, Pass: `Abc@123456`).
+   - Mở và chạy toàn bộ nội dung file `database/init/db_hcm.sql`. File này tạo database `QLXeKhach_HCM`, 11 bảng giao dịch cục bộ, dữ liệu mẫu tại TP.HCM và cấu hình **Linked Server** trỏ về Hà Nội.
 
 ---
 

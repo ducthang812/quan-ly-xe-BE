@@ -1,0 +1,294 @@
+-- Lay nguyen tu database/init/db_hn.sql cua nhom (phan A, B: tao bang + du lieu mau).
+-- Da BO phan Linked Server cuoi file: scripts/40-linked.sh tao lai, tro qua listener lsn-*.
+-- scripts/20-ag.sh chi chay file nay khi CSDL QLXeKhach_HN chua ton tai.
+CREATE DATABASE QLXeKhach_HN;
+GO
+USE QLXeKhach_HN;
+GO
+
+-- ==========================================
+-- A. TẠO 19 BẢNG (CHUẨN BCNF)
+-- ==========================================
+
+-- 1. Nhóm danh mục dùng chung
+CREATE TABLE ThamSo (
+    MaThamSo VARCHAR(50) PRIMARY KEY, 
+    GiaTri FLOAT NOT NULL, 
+    MoTa NVARCHAR(255)
+);
+
+CREATE TABLE DoPhucTap (
+    CapDo INT PRIMARY KEY CHECK (CapDo IN (1, 2, 3)), 
+    MoTa NVARCHAR(100), 
+    HeSoLuong FLOAT NOT NULL CHECK (HeSoLuong > 0), 
+    HeSoDuongKho FLOAT NOT NULL CHECK (HeSoDuongKho >= 1)
+);
+
+CREATE TABLE LoaiXe (
+    MaLoaiXe VARCHAR(10) PRIMARY KEY, 
+    TenLoaiXe NVARCHAR(100) UNIQUE NOT NULL, 
+    SoGhe INT NOT NULL CHECK (SoGhe BETWEEN 9 AND 50)
+);
+
+CREATE TABLE LoaiNgay (
+    MaLoaiNgay VARCHAR(20) PRIMARY KEY, 
+    TenLoaiNgay NVARCHAR(50) NOT NULL
+);
+
+CREATE TABLE LichNgay (
+    Ngay DATE PRIMARY KEY, 
+    MaLoaiNgay VARCHAR(20) NOT NULL,
+    CONSTRAINT FK_LichNgay_LoaiNgay FOREIGN KEY (MaLoaiNgay) REFERENCES LoaiNgay(MaLoaiNgay)
+);
+
+CREATE TABLE TuyenDuong (
+    MaTuyen VARCHAR(10) PRIMARY KEY, 
+    DiemDau NVARCHAR(50) NOT NULL, 
+    DiemCuoi NVARCHAR(50) NOT NULL, 
+    DoDaiKm FLOAT NOT NULL CHECK (DoDaiKm > 0), 
+    CapDo INT NOT NULL,
+    CONSTRAINT FK_Tuyen_DoPhucTap FOREIGN KEY (CapDo) REFERENCES DoPhucTap(CapDo),
+    CONSTRAINT CK_Tuyen_DiemKhacNhau CHECK (DiemDau <> DiemCuoi)
+);
+
+CREATE TABLE BangGiaVe (
+    MaTuyen VARCHAR(10), 
+    MaLoaiNgay VARCHAR(20), 
+    GiaVe FLOAT NOT NULL CHECK (GiaVe > 0), 
+    PRIMARY KEY (MaTuyen, MaLoaiNgay),
+    CONSTRAINT FK_GiaVe_Tuyen FOREIGN KEY (MaTuyen) REFERENCES TuyenDuong(MaTuyen),
+    CONSTRAINT FK_GiaVe_LoaiNgay FOREIGN KEY (MaLoaiNgay) REFERENCES LoaiNgay(MaLoaiNgay)
+);
+
+CREATE TABLE ChiNhanh (
+    MaCN VARCHAR(10) PRIMARY KEY, 
+    TenCN NVARCHAR(100) NOT NULL, 
+    DiaChi NVARCHAR(255), 
+    SoDienThoai VARCHAR(15), 
+    MaTruongCN VARCHAR(15)
+);
+
+-- 2. Nhóm giao dịch cục bộ Hà Nội
+CREATE TABLE NhanVien (
+    MaNV VARCHAR(15) PRIMARY KEY, 
+    HoDem NVARCHAR(50) NOT NULL, 
+    Ten NVARCHAR(20) NOT NULL, 
+    ChucVu VARCHAR(20) CHECK (ChucVu IN ('BanVe', 'DieuHanh', 'KyThuat', 'QuanLy')), 
+    SoDienThoai VARCHAR(15), 
+    MaCN VARCHAR(10) NOT NULL,
+    CONSTRAINT FK_NhanVien_ChiNhanh FOREIGN KEY (MaCN) REFERENCES ChiNhanh(MaCN)
+);
+
+ALTER TABLE ChiNhanh 
+ADD CONSTRAINT FK_CN_TruongCN FOREIGN KEY (MaTruongCN) REFERENCES NhanVien(MaNV);
+
+CREATE TABLE Xe (
+    MaXe VARCHAR(10) PRIMARY KEY, 
+    BienSo VARCHAR(15) UNIQUE NOT NULL, 
+    MaLoaiXe VARCHAR(10) NOT NULL, 
+    MaCN VARCHAR(10) NOT NULL, 
+    NamSanXuat INT NOT NULL CHECK (NamSanXuat >= 2005), 
+    NgayDuaVaoSD DATE NOT NULL, 
+    TrangThai VARCHAR(20) DEFAULT 'HoatDong' CHECK (TrangThai IN ('HoatDong', 'BaoDuong', 'NgungHD')),
+    CONSTRAINT FK_Xe_LoaiXe FOREIGN KEY (MaLoaiXe) REFERENCES LoaiXe(MaLoaiXe),
+    CONSTRAINT FK_Xe_ChiNhanh FOREIGN KEY (MaCN) REFERENCES ChiNhanh(MaCN)
+);
+
+CREATE TABLE TaiXe (
+    MaTX VARCHAR(10) PRIMARY KEY, 
+    HoDem NVARCHAR(50) NOT NULL, 
+    Ten NVARCHAR(20) NOT NULL, 
+    NgaySinh DATE NOT NULL CHECK (DATEDIFF(YEAR, NgaySinh, GETDATE()) >= 21), 
+    CCCD VARCHAR(12) UNIQUE NOT NULL, 
+    SoGPLX VARCHAR(20) UNIQUE NOT NULL, 
+    HangGPLX VARCHAR(5) CHECK (HangGPLX IN ('D', 'E', 'FC')), 
+    SoNha NVARCHAR(100), 
+    Phuong NVARCHAR(50), 
+    Tinh NVARCHAR(50), 
+    NgayVaoLam DATE NOT NULL, 
+    TrangThai VARCHAR(20) DEFAULT 'DangLam' CHECK (TrangThai IN ('DangLam', 'NghiViec')), 
+    MaCN VARCHAR(10) NOT NULL,
+    CONSTRAINT FK_TaiXe_ChiNhanh FOREIGN KEY (MaCN) REFERENCES ChiNhanh(MaCN)
+);
+
+CREATE TABLE TaiXe_SDT (
+    MaTX VARCHAR(10), 
+    SoDienThoai VARCHAR(15), 
+    PRIMARY KEY (MaTX, SoDienThoai),
+    CONSTRAINT FK_TaiXeSDT_TaiXe FOREIGN KEY (MaTX) REFERENCES TaiXe(MaTX) ON DELETE CASCADE
+);
+
+CREATE TABLE ChuyenXe (
+    MaChuyen VARCHAR(15) PRIMARY KEY, 
+    MaTuyen VARCHAR(10) NOT NULL, 
+    MaXe VARCHAR(10) NOT NULL, 
+    GioKhoiHanhDK DATETIME NOT NULL, 
+    GioDenDK DATETIME, 
+    GioKhoiHanhTT DATETIME, 
+    GioDenTT DATETIME, 
+    KmThucTe FLOAT, 
+    ChiPhiVanHanh FLOAT CHECK (ChiPhiVanHanh >= 0), 
+    TrangThai VARCHAR(20) DEFAULT 'KeHoach' CHECK (TrangThai IN ('KeHoach', 'DangChay', 'HoanThanh', 'Huy')),
+    CONSTRAINT FK_Chuyen_Tuyen FOREIGN KEY (MaTuyen) REFERENCES TuyenDuong(MaTuyen),
+    CONSTRAINT FK_Chuyen_Xe FOREIGN KEY (MaXe) REFERENCES Xe(MaXe)
+);
+
+CREATE TABLE PhanCong (
+    MaChuyen VARCHAR(15), 
+    MaTX VARCHAR(10), 
+    VaiTro VARCHAR(10) CHECK (VaiTro IN ('LAI', 'PHU')), 
+    ThuLao FLOAT NOT NULL, 
+    PRIMARY KEY (MaChuyen, MaTX), 
+    CONSTRAINT UQ_PC_VaiTro UNIQUE (MaChuyen, VaiTro),
+    CONSTRAINT FK_PhanCong_Chuyen FOREIGN KEY (MaChuyen) REFERENCES ChuyenXe(MaChuyen),
+    CONSTRAINT FK_PhanCong_TaiXe FOREIGN KEY (MaTX) REFERENCES TaiXe(MaTX)
+);
+
+CREATE TABLE HanhKhach (
+    MaHK VARCHAR(15) PRIMARY KEY, 
+    HoTen NVARCHAR(100) NOT NULL, 
+    SoDienThoai VARCHAR(15) UNIQUE NOT NULL, 
+    CCCD VARCHAR(12), 
+    Email VARCHAR(100)
+);
+
+CREATE TABLE Ve (
+    MaVe VARCHAR(50) PRIMARY KEY, 
+    MaChuyen VARCHAR(15) NOT NULL, 
+    MaHK VARCHAR(15) NOT NULL, 
+    MaNVBan VARCHAR(15) NOT NULL, 
+    SoGhe INT NOT NULL, 
+    LanBan INT NOT NULL, 
+    GiaVe FLOAT NOT NULL CHECK (GiaVe > 0), 
+    NgayBan DATETIME DEFAULT GETDATE(), 
+    TrangThai VARCHAR(20) DEFAULT 'DaBan' CHECK (TrangThai IN ('DaBan', 'DaHuy')),
+    CONSTRAINT FK_Ve_Chuyen FOREIGN KEY (MaChuyen) REFERENCES ChuyenXe(MaChuyen),
+    CONSTRAINT FK_Ve_HanhKhach FOREIGN KEY (MaHK) REFERENCES HanhKhach(MaHK),
+    CONSTRAINT FK_Ve_NVBan FOREIGN KEY (MaNVBan) REFERENCES NhanVien(MaNV)
+);
+
+CREATE UNIQUE INDEX UX_Ve_GheDangBan ON Ve(MaChuyen, SoGhe) WHERE TrangThai = 'DaBan';
+
+CREATE TABLE BaoDuong (
+    MaXe VARCHAR(10), 
+    NgayBaoDuong DATE, 
+    NoiDung NVARCHAR(255), 
+    ChiPhi FLOAT CHECK (ChiPhi >= 0), 
+    PRIMARY KEY (MaXe, NgayBaoDuong),
+    CONSTRAINT FK_BaoDuong_Xe FOREIGN KEY (MaXe) REFERENCES Xe(MaXe)
+);
+
+CREATE TABLE DangKiem (
+    MaXe VARCHAR(10), 
+    NgayDangKiem DATE, 
+    NgayHetHan DATE, 
+    KetQua VARCHAR(20) CHECK (KetQua IN ('Dat', 'KhongDat')), 
+    ChiPhi FLOAT CHECK (ChiPhi >= 0), 
+    PRIMARY KEY (MaXe, NgayDangKiem),
+    CONSTRAINT FK_DangKiem_Xe FOREIGN KEY (MaXe) REFERENCES Xe(MaXe)
+);
+
+CREATE TABLE BangLuong (
+    MaTX VARCHAR(10), 
+    Thang VARCHAR(7), 
+    SoChuyenLai INT DEFAULT 0, 
+    SoChuyenPhu INT DEFAULT 0, 
+    TongLuong FLOAT DEFAULT 0, 
+    NgayChot DATETIME DEFAULT GETDATE(), 
+    PRIMARY KEY (MaTX, Thang),
+    CONSTRAINT FK_BangLuong_TaiXe FOREIGN KEY (MaTX) REFERENCES TaiXe(MaTX)
+);
+GO
+
+-- ==========================================
+-- B. INSERT DỮ LIỆU GỐC & CẤU HÌNH
+-- ==========================================
+INSERT INTO ThamSo VALUES 
+('DON_GIA_KM', 2000, N'Đơn giá thù lao mỗi km'), 
+('HS_LAI', 1.0, N'Hệ số lái xe'), 
+('HS_PHU', 0.6, N'Hệ số phụ xe'), 
+('CHU_KY_BD', 360, N'Chu kỳ BD'), 
+('KM_MOI_NGAY_BD', 100, N'Số km giảm 1 ngày BD'), 
+('CANH_BAO_NGAY', 15, N'Cảnh báo đến hạn'), 
+('CHU_KY_DK_CU', 6, N'ĐK xe cũ'), 
+('CHU_KY_DK_MOI', 12, N'ĐK xe mới'), 
+('TUOI_XE_CU', 5, N'Tuổi xe cũ');
+
+INSERT INTO DoPhucTap VALUES 
+(1, N'Đường bằng', 1.0, 1.0), 
+(2, N'Đèo nhẹ', 1.2, 1.3), 
+(3, N'Đèo dốc', 1.5, 1.6);
+
+INSERT INTO LoaiXe VALUES 
+('LX09', N'Limousine 9 chỗ', 9), 
+('LX16', N'Xe 16 chỗ', 16), 
+('LX29', N'Xe 29 chỗ', 29), 
+('LX45', N'Xe 45 chỗ', 45);
+
+INSERT INTO LoaiNgay VALUES 
+('THUONG', N'Ngày thường'), 
+('CUOITUAN', N'Cuối tuần'), 
+('MUADL', N'Mùa du lịch'), 
+('LETET', N'Ngày Lễ Tết');
+
+INSERT INTO LichNgay VALUES 
+('2025-06-02', 'MUADL'), 
+('2025-06-03', 'THUONG');
+
+INSERT INTO TuyenDuong VALUES 
+('T01', N'Hà Nội', N'Đà Nẵng', 760, 2), 
+('T02', N'Hà Nội', N'Vinh', 300, 2);
+
+INSERT INTO BangGiaVe VALUES 
+('T01', 'THUONG', 400000), 
+('T01', 'CUOITUAN', 440000), 
+('T01', 'MUADL', 460000), 
+('T01', 'LETET', 520000), 
+('T02', 'THUONG', 250000), 
+('T02', 'CUOITUAN', 275000), 
+('T02', 'MUADL', 287500), 
+('T02', 'LETET', 325000);
+
+INSERT INTO ChiNhanh (MaCN, TenCN, DiaChi) VALUES 
+('CN01', N'Hà Nội', N'Bến Mỹ Đình'), 
+('CN02', N'Đà Nẵng', N'Bến Trung tâm'), 
+('CN03', N'TP.HCM', N'Bến Miền Đông');
+
+INSERT INTO NhanVien VALUES 
+('NV_HN01', N'Trần', N'Quản', 'QuanLy', '0901111111', 'CN01'), 
+('NV_HN02', N'Lê', N'Bán', 'BanVe', '0902222222', 'CN01');
+
+UPDATE ChiNhanh SET MaTruongCN = 'NV_HN01' WHERE MaCN = 'CN01';
+
+INSERT INTO Xe VALUES 
+('XE001', '29B-123.45', 'LX45', 'CN01', 2022, '2025-01-01', 'HoatDong'),
+('XE002', '29B-234.56', 'LX29', 'CN01', 2023, '2025-01-01', 'HoatDong'),
+('XE003', '29B-345.67', 'LX16', 'CN01', 2023, '2025-01-01', 'HoatDong'),
+('XE004', '29B-456.78', 'LX09', 'CN01', 2024, '2025-01-01', 'HoatDong'),
+('XE005', '29B-567.89', 'LX45', 'CN01', 2022, '2025-01-01', 'HoatDong');
+
+INSERT INTO DangKiem VALUES 
+('XE001', '2025-01-01', '2026-01-01', 'Dat', 350000),
+('XE002', '2025-01-01', '2026-01-01', 'Dat', 350000),
+('XE003', '2025-01-01', '2026-01-01', 'Dat', 350000),
+('XE004', '2025-01-01', '2026-01-01', 'Dat', 350000),
+('XE005', '2025-01-01', '2026-01-01', 'Dat', 350000);
+
+INSERT INTO BaoDuong VALUES 
+('XE001', '2024-01-01', N'Bảo dưỡng tổng thể', 10000000);
+
+INSERT INTO TaiXe VALUES 
+('TX0001', N'Nguyễn', N'Tài', '1985-05-10', '001085000001', 'GPLX001', 'E', N'Số 1', N'Mỹ Đình', N'Hà Nội', '2023-01-01', 'DangLam', 'CN01'), 
+('TX0002', N'Lê', N'Phụ', '1995-08-20', '001095000002', 'GPLX002', 'D', N'Số 2', N'Cầu Giấy', N'Hà Nội', '2024-01-01', 'DangLam', 'CN01'),
+('TX0003', N'Trần', N'Bình', '1988-03-15', '001088000003', 'GPLX003', 'E', N'Số 15', N'Kim Mã', N'Hà Nội', '2023-05-10', 'DangLam', 'CN01'),
+('TX0004', N'Phạm', N'Hùng', '1990-11-25', '001090000004', 'GPLX004', 'E', N'Số 28', N'Đội Cấn', N'Hà Nội', '2023-09-01', 'DangLam', 'CN01'),
+('TX0005', N'Hoàng', N'Tuấn', '1993-07-12', '001093000005', 'GPLX005', 'D', N'Số 45', N'Xuân Thủy', N'Hà Nội', '2024-03-15', 'DangLam', 'CN01');
+
+INSERT INTO TaiXe_SDT VALUES 
+('TX0001', '0905111001'),
+('TX0002', '0905111002'),
+('TX0003', '0905111003'),
+('TX0004', '0905111004'),
+('TX0005', '0905111005');
+GO
+GO

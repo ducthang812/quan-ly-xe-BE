@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### SQL Server data files (docker volume) ###
+database/data_*/

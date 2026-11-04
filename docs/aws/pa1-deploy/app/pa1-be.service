@@ -1,0 +1,18 @@
+# systemd: chay BE Spring Boot nhu mot dich vu (tu chay lai khi loi hoac khi bat may).
+# File jar: /opt/pa1-be/app.jar (ban build tu "mvnw clean package -DskipTests" tren may ban).
+[Unit]
+Description=PA1 backend (Spring Boot)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/opt/pa1-be
+EnvironmentFile=/opt/pa1-be/be.env
+ExecStart=/bin/sh -c 'exec /usr/bin/java $JAVA_OPTS -jar /opt/pa1-be/app.jar'
+Restart=always
+RestartSec=5
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target

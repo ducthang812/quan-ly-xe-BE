@@ -85,8 +85,10 @@ public class BranchRoutingFilter extends OncePerRequestFilter {
         // - Dữ liệu dùng chung khác (tham số, tuyến đường, bảng giá vé, bảng lương / chốt lương): Chỉ site Hà Nội (/hn) mới được phép cập nhật.
         boolean isTaiXeEndpoint = rewrittenUri.startsWith("/api/v1/cauhinh/tai-xe");
         boolean isDoiXeEndpoint = rewrittenUri.startsWith("/api/v1/doixe/");
+        // - Dữ liệu phân mảnh vận hành của B (/api/v1/vanhanh/**: ChuyenXe, PhanCong, Ve, HanhKhach): Cho phép ghi ở mọi site theo phân mảnh cục bộ.
+        boolean isVanHanhEndpoint = rewrittenUri.startsWith("/api/v1/vanhanh/");
         boolean isWriteOperation = "POST".equals(method) || "PUT".equals(method) || "DELETE".equals(method) || "PATCH".equals(method);
-        if (isWriteOperation && !isTaiXeEndpoint && !isDoiXeEndpoint && !"CN01".equals(branch)) {
+        if (isWriteOperation && !isTaiXeEndpoint && !isDoiXeEndpoint && !isVanHanhEndpoint && !"CN01".equals(branch)) {
             sendJsonError(
                     response,
                     HttpServletResponse.SC_FORBIDDEN,
