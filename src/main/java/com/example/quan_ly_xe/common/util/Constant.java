@@ -83,7 +83,7 @@ public final class Constant {
         public static final String HEADER_VAI_TRO = "X-VaiTro";
 
         // Biểu thức @Value cho nhân viên demo mặc định khi request không có header.
-        public static final String DEFAULT_MA_NV_EXPR = "${app.auth.default-ma-nv:NV001}";
+        public static final String DEFAULT_MA_NV_EXPR = "${app.auth.default-ma-nv:NV_HN02}";
         public static final String DEFAULT_HO_TEN_EXPR = "${app.auth.default-ho-ten:Nhân viên demo}";
         public static final String DEFAULT_MA_CN_EXPR = "${app.auth.default-ma-cn:CN01}";
         public static final String DEFAULT_VAI_TRO_EXPR = "${app.auth.default-vai-tro:QUAN_LY}";

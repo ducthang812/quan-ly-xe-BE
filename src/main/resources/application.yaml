@@ -54,7 +54,7 @@ app:
   # Nhân viên demo mặc định khi request không gửi header X-MaNV/X-MaCN/X-VaiTro.
   # (Bản demo không đăng nhập; client đổi header để demo chi nhánh/vai trò khác.)
   auth:
-    default-ma-nv: NV001
+    default-ma-nv: NV_HN02
     default-ho-ten: Nhân viên demo
     default-ma-cn: CN01
     default-vai-tro: QUAN_LY
