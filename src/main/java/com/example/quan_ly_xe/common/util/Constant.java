@@ -85,6 +85,9 @@ public final class Constant {
         // Biểu thức @Value cho nhân viên demo mặc định khi request không có header.
         public static final String DEFAULT_MA_NV_EXPR = "${app.auth.default-ma-nv:NV_HN02}";
         public static final String DEFAULT_HO_TEN_EXPR = "${app.auth.default-ho-ten:Nhân viên demo}";
+        // Nhân viên mặc định theo chi nhánh (mã nhân viên chỉ tồn tại trong CSDL của chi nhánh đó).
+        public static final String DEFAULT_MA_NV_CN02_EXPR = "${app.auth.default-ma-nv-cn02:NV_DN01}";
+        public static final String DEFAULT_MA_NV_CN03_EXPR = "${app.auth.default-ma-nv-cn03:NV_HCM01}";
         public static final String DEFAULT_MA_CN_EXPR = "${app.auth.default-ma-cn:CN01}";
         public static final String DEFAULT_VAI_TRO_EXPR = "${app.auth.default-vai-tro:QUAN_LY}";
     }

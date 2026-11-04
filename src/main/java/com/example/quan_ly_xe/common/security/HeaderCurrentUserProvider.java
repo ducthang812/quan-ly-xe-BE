@@ -1,6 +1,7 @@
 package com.example.quan_ly_xe.common.security;
 
 import com.example.quan_ly_xe.common.util.Constant;
+import com.example.quan_ly_xe.shared.routing.BranchContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -20,12 +21,18 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 public class HeaderCurrentUserProvider implements CurrentUserProvider {
 
     private final CurrentUser defaultUser;
+    private final String defaultEmployeeCn02;
+    private final String defaultEmployeeCn03;
 
     public HeaderCurrentUserProvider(
             @Value(Constant.Security.DEFAULT_MA_NV_EXPR) String defaultEmployeeCode,
             @Value(Constant.Security.DEFAULT_HO_TEN_EXPR) String defaultFullName,
             @Value(Constant.Security.DEFAULT_MA_CN_EXPR) String defaultBranchCode,
-            @Value(Constant.Security.DEFAULT_VAI_TRO_EXPR) String defaultRole) {
+            @Value(Constant.Security.DEFAULT_VAI_TRO_EXPR) String defaultRole,
+            @Value(Constant.Security.DEFAULT_MA_NV_CN02_EXPR) String defaultEmployeeCn02,
+            @Value(Constant.Security.DEFAULT_MA_NV_CN03_EXPR) String defaultEmployeeCn03) {
+        this.defaultEmployeeCn02 = defaultEmployeeCn02;
+        this.defaultEmployeeCn03 = defaultEmployeeCn03;
         Role role = Role.fromCodeOrNull(defaultRole);
         this.defaultUser = new CurrentUser(
                 defaultEmployeeCode,
@@ -41,7 +48,9 @@ public class HeaderCurrentUserProvider implements CurrentUserProvider {
             return defaultUser;
         }
 
-        String employeeCode = header(request, Constant.Security.HEADER_MA_NV, defaultUser.getEmployeeCode());
+        // Site đang gọi (/hn, /dn, /hcm) quyết định nhân viên mặc định: mã NV chỉ có trong CSDL chi nhánh đó.
+        String siteBranch = BranchContextHolder.getBranch();
+        String employeeCode = header(request, Constant.Security.HEADER_MA_NV, defaultEmployeeFor(siteBranch));
         String branchCode = header(request, Constant.Security.HEADER_MA_CN, defaultUser.getBranchCode());
         Role role = Role.fromCodeOrNull(request.getHeader(Constant.Security.HEADER_VAI_TRO));
         if (role == null) {
@@ -49,6 +58,12 @@ public class HeaderCurrentUserProvider implements CurrentUserProvider {
         }
         // Bản demo chưa tra tên trong NhanVien; dùng mã nhân viên làm nhãn tạm.
         return new CurrentUser(employeeCode, employeeCode, role, branchCode);
+    }
+
+    private String defaultEmployeeFor(String siteBranch) {
+        if ("CN02".equals(siteBranch)) return defaultEmployeeCn02;
+        if ("CN03".equals(siteBranch)) return defaultEmployeeCn03;
+        return defaultUser.getEmployeeCode();
     }
 
     private static String header(HttpServletRequest request, String name, String fallback) {
