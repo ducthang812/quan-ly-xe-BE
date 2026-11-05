@@ -136,6 +136,7 @@ BEGIN
     JOIN ChuyenXe cx ON v.MaChuyen = cx.MaChuyen
     JOIN Xe x ON cx.MaXe = x.MaXe
     WHERE cx.TrangThai = 'HoanThanh'
+      AND v.TrangThai = 'DaBan'
       AND cx.GioKhoiHanhDK >= @NgayDauThang
       AND cx.GioKhoiHanhDK < @NgayDauThangSau
       AND x.MaCN = @MaCN;
